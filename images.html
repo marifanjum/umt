@@ -481,31 +481,6 @@ function computeCollageLayout() {
     }
   }
 
-} else if (layout === 'grid-2stack-grid') {
-  // Two big stacked left, grid right
-  const bigW = Math.floor(W * 0.55);
-  const gridW = W - bigW;
-  const bigH = Math.floor(H / 2);
-  if (count >= 1) collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: bigH };
-  if (count >= 2) collageSlots[1].rect = { x: 0, y: bigH, w: bigW, h: bigH };
-  const others = Math.max(0, count - 2);
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-    let idx = 2;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: bigW + c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
 
 } else if (layout === 'grid-1big-grid-left') {
   // One big on right, grid on left
@@ -531,31 +506,7 @@ function computeCollageLayout() {
     }
   }
 
-} else if (layout === 'grid-2stack-grid-left') {
-  // Two big stacked on right, grid on left
-  const bigW = Math.floor(W * 0.55);
-  const gridW = W - bigW;
-  const bigH = Math.floor(H / 2);
-  if (count >= 1) collageSlots[0].rect = { x: gridW, y: 0, w: bigW, h: bigH };
-  if (count >= 2) collageSlots[1].rect = { x: gridW, y: bigH, w: bigW, h: bigH };
-  const others = Math.max(0, count - 2);
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-    let idx = 2;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
+
 
 } else if (layout === 'grid-1big-grid-top') {
   // One big on top, grid on bottom
@@ -580,6 +531,72 @@ function computeCollageLayout() {
       }
     }
   }
+	  } else if (layout === 'grid-2stack-grid') {
+    // Two big stacked on left, remaining images in a neat grid on the right
+    const bigW = Math.floor(W * 0.55);
+    const gridW = W - bigW;
+    const bigH = Math.floor(H / 2);
+
+    // Two big stacked (left)
+    if (count >= 1)
+      collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: bigH };
+    if (count >= 2)
+      collageSlots[1].rect = { x: 0, y: bigH, w: bigW, h: bigH };
+
+    const others = Math.max(0, count - 2);
+    if (others > 0) {
+      // Grid for remaining images (right side)
+      // If >4 images, use 2 rows; otherwise, fit them neatly
+      const rows = others > 4 ? 2 : Math.ceil(others / 2);
+      const cols = Math.ceil(others / rows);
+      const cellW = Math.floor(gridW / cols);
+      const cellH = Math.floor(H / rows);
+
+      let idx = 2;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols && idx < count; c++, idx++) {
+          collageSlots[idx].rect = {
+            x: bigW + c * cellW,
+            y: r * cellH,
+            w: cellW,
+            h: cellH
+          };
+        }
+      }
+    }
+
+  } else if (layout === 'grid-2stack-grid-left') {
+    // Two big stacked on right, remaining images in a grid on the left
+    const bigW = Math.floor(W * 0.55);
+    const gridW = W - bigW;
+    const bigH = Math.floor(H / 2);
+
+    // Two big stacked (right)
+    if (count >= 1)
+      collageSlots[0].rect = { x: gridW, y: 0, w: bigW, h: bigH };
+    if (count >= 2)
+      collageSlots[1].rect = { x: gridW, y: bigH, w: bigW, h: bigH };
+
+    const others = Math.max(0, count - 2);
+    if (others > 0) {
+      // Grid for remaining images (left side)
+      const rows = others > 4 ? 2 : Math.ceil(others / 2);
+      const cols = Math.ceil(others / rows);
+      const cellW = Math.floor(gridW / cols);
+      const cellH = Math.floor(H / rows);
+
+      let idx = 2;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols && idx < count; c++, idx++) {
+          collageSlots[idx].rect = {
+            x: c * cellW,
+            y: r * cellH,
+            w: cellW,
+            h: cellH
+          };
+        }
+      }
+	}
 
 } else if (layout === 'grid-1big-grid-bottom') {
   // One big on bottom, grid on top
@@ -1063,6 +1080,7 @@ drawAll();
 </script>
 </body>
 </html>
+
 
 
 
