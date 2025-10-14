@@ -60,11 +60,33 @@
 
     <label>Layout:
       <select id="collageLayout" class="small">
-        <option value="row">Row</option>
-        <option value="column">Column</option>
-        <option value="grid-equal">Grid — Equal</option>
-        <option value="grid-1big">Grid — 1 big + small</option>
-        <option value="grid-2big">Grid — 2 big + small</option>
+        <select id="collageLayout" class="small">
+  <optgroup label="Basic Layouts">
+    <option value="row">Row</option>
+    <option value="column">Column</option>
+    <option value="grid-equal">Grid — Equal</option>
+  </optgroup>
+
+  <optgroup label="Big Image Layouts">
+    <option value="grid-1big">1 Big (Left) + Small Column</option>
+    <option value="grid-2big">2 Big (Top Row) + Small Bottom</option>
+  </optgroup>
+
+  <optgroup label="Advanced Layouts — Right Grid">
+    <option value="grid-1big-grid">1 Big (Left) + Others Grid (Right)</option>
+    <option value="grid-2stack-grid">2 Big Stacked (Left) + Others Grid (Right)</option>
+  </optgroup>
+
+  <optgroup label="Advanced Layouts — Left Grid">
+    <option value="grid-1big-grid-left">1 Big (Right) + Others Grid (Left)</option>
+    <option value="grid-2stack-grid-left">2 Big Stacked (Right) + Others Grid (Left)</option>
+  </optgroup>
+
+  <optgroup label="Advanced Layouts — Top/Bottom">
+    <option value="grid-1big-grid-top">1 Big (Top) + Others Grid (Bottom)</option>
+    <option value="grid-1big-grid-bottom">1 Big (Bottom) + Others Grid (Top)</option>
+  </optgroup>
+		</select>
       </select>
     </label>
 
@@ -1043,4 +1065,5 @@ drawAll();
 </script>
 </body>
 </html>
+
 
