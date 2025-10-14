@@ -397,200 +397,54 @@ function computeCollageLayout() {
   }
 
   // choose layout templates
-	if (layout === 'row') {
-  const w = Math.floor(W / count);
-  for (let i = 0; i < count; i++)
-    collageSlots[i].rect = { x: i * w, y: 0, w: w, h: H };
-
-} else if (layout === 'column') {
-  const h = Math.floor(H / count);
-  for (let i = 0; i < count; i++)
-    collageSlots[i].rect = { x: 0, y: i * h, w: W, h: h };
-
-} else if (layout === 'grid-equal') {
-  if (count === 2) equalGrid(1, 2);
-  else if (count === 3) equalGrid(1, 3);
-  else if (count === 4) equalGrid(2, 2);
-  else if (count === 5) equalGrid(2, 3);
-  else equalGrid(2, 3);
-
-} else if (layout === 'grid-1big') {
-  const bigW = Math.floor(W * 0.6);
-  const smallW = W - bigW;
-  const bigH = H;
-  collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: bigH };
-  const smallCount = count - 1;
-  const smallH = Math.floor(H / Math.max(1, smallCount));
-  for (let i = 1; i < count; i++) {
-    collageSlots[i].rect = { x: bigW, y: (i - 1) * smallH, w: smallW, h: smallH };
-  }
-
-} else if (layout === 'grid-2big') {
-  const bigW = Math.floor(W / 2);
-  const bigH = Math.floor(H * 0.55);
-  const smallH = H - bigH;
-  if (count >= 1) collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: bigH };
-  if (count >= 2) collageSlots[1].rect = { x: bigW, y: 0, w: bigW, h: bigH };
-  const smallCount = Math.max(0, count - 2);
-  const smallW = Math.floor(W / Math.max(1, smallCount));
-  for (let i = 0; i < smallCount; i++) {
-    collageSlots[2 + i].rect = { x: i * smallW, y: bigH, w: smallW, h: smallH };
-  }
-
-} else if (layout === 'grid-1big-grid') {
-  // One big on left, grid on right
-  const bigW = Math.floor(W * 0.6);
-  const gridW = W - bigW;
-  collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: H };
-  const others = count - 1;
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-    let idx = 1;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: bigW + c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
+  if (layout === 'row') {
+    const w = Math.floor(W / count);
+    for (let i=0;i<count;i++) collageSlots[i].rect = { x: i*w, y:0, w: w, h: H };
+  } else if (layout === 'column') {
+    const h = Math.floor(H / count);
+    for (let i=0;i<count;i++) collageSlots[i].rect = { x:0, y:i*h, w: W, h: h };
+  } else if (layout === 'grid-equal') {
+    // choose rows/cols for up to 6
+    if (count === 2) equalGrid(1,2);
+    else if (count === 3) equalGrid(1,3);
+    else if (count === 4) equalGrid(2,2);
+    else if (count === 5) { equalGrid(2,3); } // last slot empty if needed
+    else equalGrid(2,3); // 6 -> 2x3
+  } else if (layout === 'grid-1big') {
+    // one big at left, rest smaller stacked on right (or a top big)
+    // implement: left half big, right column split into rows for others
+    const bigW = Math.floor(W * 0.6);
+    const smallW = W - bigW;
+    const bigH = H;
+    collageSlots[0].rect = { x: 0, y:0, w: bigW, h: bigH };
+    const smallCount = count - 1;
+    const smallH = Math.floor(H / Math.max(1, smallCount));
+    for (let i=1;i<count;i++){
+      collageSlots[i].rect = { x: bigW, y: (i-1)*smallH, w: smallW, h: smallH };
     }
-  }
-
-} else if (layout === 'grid-2stack-grid') {
-  // Two big stacked left, grid right
-  const bigW = Math.floor(W * 0.55);
-  const gridW = W - bigW;
-  const bigH = Math.floor(H / 2);
-  if (count >= 1) collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: bigH };
-  if (count >= 2) collageSlots[1].rect = { x: 0, y: bigH, w: bigW, h: bigH };
-  const others = Math.max(0, count - 2);
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-    let idx = 2;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: bigW + c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
+  } else if (layout === 'grid-2big') {
+    // two big on top, rest small below (or similar)
+    // implement: top row two big halves, bottom row small equally spaced
+    const bigW = Math.floor(W/2);
+    const bigH = Math.floor(H*0.55);
+    const smallH = H - bigH;
+    // assign top two big
+    if (count >= 1) collageSlots[0].rect = { x:0, y:0, w: bigW, h: bigH };
+    if (count >= 2) collageSlots[1].rect = { x:bigW, y:0, w: bigW, h: bigH };
+    // rest split across bottom
+    const smallCount = Math.max(0, count-2);
+    const smallW = Math.floor(W / Math.max(1, smallCount));
+    for (let i=0;i<smallCount;i++){
+      collageSlots[2+i].rect = { x: i*smallW, y: bigH, w: smallW, h: smallH };
     }
+  } else {
+    // fallback to equal grid
+    computeCollageLayout('grid-equal');
   }
-
-} else if (layout === 'grid-1big-grid-left') {
-  // One big on right, grid on left
-  const bigW = Math.floor(W * 0.6);
-  const gridW = W - bigW;
-  collageSlots[0].rect = { x: gridW, y: 0, w: bigW, h: H };
-  const others = count - 1;
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-    let idx = 1;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-
-} else if (layout === 'grid-2stack-grid-left') {
-  // Two big stacked on right, grid on left
-  const bigW = Math.floor(W * 0.55);
-  const gridW = W - bigW;
-  const bigH = Math.floor(H / 2);
-  if (count >= 1) collageSlots[0].rect = { x: gridW, y: 0, w: bigW, h: bigH };
-  if (count >= 2) collageSlots[1].rect = { x: gridW, y: bigH, w: bigW, h: bigH };
-  const others = Math.max(0, count - 2);
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-    let idx = 2;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-
-} else if (layout === 'grid-1big-grid-top') {
-  // One big on top, grid on bottom
-  const bigH = Math.floor(H * 0.6);
-  const gridH = H - bigH;
-  collageSlots[0].rect = { x: 0, y: 0, w: W, h: bigH };
-  const others = count - 1;
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(W / cols);
-    const cellH = Math.floor(gridH / rows);
-    let idx = 1;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: c * cellW,
-          y: bigH + r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-
-} else if (layout === 'grid-1big-grid-bottom') {
-  // One big on bottom, grid on top
-  const bigH = Math.floor(H * 0.6);
-  const gridH = H - bigH;
-  collageSlots[0].rect = { x: 0, y: gridH, w: W, h: bigH };
-  const others = count - 1;
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(W / cols);
-    const cellH = Math.floor(gridH / rows);
-    let idx = 1;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-
-} else {
-  computeCollageLayout('grid-equal');
 }
 
 // when layout or count changes, recompute (but only if slots exist)
-collageLayout.addEventListener('change', ()=> {
+collageLayout.addEventListener('change', () => {
   if (collageSlots.length) { computeCollageLayout(); drawAll(); }
 });
 collageCount.addEventListener('change', () => {
@@ -1042,5 +896,3 @@ drawAll();
 </script>
 </body>
 </html>
-
-
