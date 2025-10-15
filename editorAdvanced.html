@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Social Card Generator</title>
+	  <link href="
+https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
+" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+	  
+    <style>
+      @font-face {
+        font-family: "Pangea Afrikan Trial";
+        src: url("https://db.onlinewebfonts.com/t/11650c78ba93a8c78b44eff5c3628f9e.eot");
+        src: url("https://db.onlinewebfonts.com/t/11650c78ba93a8c78b44eff5c3628f9e.eot?#iefix") format("embedded-opentype"),
+          url("https://db.onlinewebfonts.com/t/11650c78ba93a8c78b44eff5c3628f9e.woff2") format("woff2"),
+          url("https://db.onlinewebfonts.com/t/11650c78ba93a8c78b44eff5c3628f9e.woff") format("woff"),
+          url("https://db.onlinewebfonts.com/t/11650c78ba93a8c78b44eff5c3628f9e.ttf") format("truetype"),
+          url("https://db.onlinewebfonts.com/t/11650c78ba93a8c78b44eff5c3628f9e.svg#Pangea Afrikan Trial") format("svg");
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      function SocialCardGenerator() {
+        const { useState, useRef, useEffect } = React;
+        const containerRef = useRef(null);
+	 
+		  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+  try {
+    const savedAuth = localStorage.getItem('socialCardAuth');
+    return savedAuth ? JSON.parse(savedAuth) : false;
+  } catch (e) {
+    console.error("Failed to load authentication status from localStorage", e);
+    return false;
+  }
+});
+        // State variables for collapsing sections
+        const [isBackgroundCollapsed, setIsBackgroundCollapsed] = useState(false);
+        const [isPresetsCollapsed, setIsPresetsCollapsed] = useState(false);
+        const [isImagesCollapsed, setIsImagesCollapsed] = useState(false);
+        const [isVignetteCollapsed, setIsVignetteCollapsed] = useState(false);
+        const [isLogoCollapsed, setIsLogoCollapsed] = useState(false);
+        const [isCanvasCollapsed, setIsCanvasCollapsed] = useState(false);
+        const [isFileNameCollapsed, setIsFileNameCollapsed] = useState(false);
+        const [vignette, setVignette] = useState({ show: false, x: 0, y: 0, scale: 1 });
+        
+        const [DEFAULT_PRESETS, setDEFAULT_PRESETS] = useState({});
+        const [presets, setPresets] = React.useState({});
+        const [currentPresetName, setCurrentPresetName] = useState(null);
+
+        // Load presets from JSON file
+        useEffect(() => {
+          fetch('presets.json')
+            .then(response => response.json())
+            .then(data => {
+              setDEFAULT_PRESETS(data);
+              const saved = localStorage.getItem("userPresets");
+              setPresets({ ...data, ...(saved ? JSON.parse(saved) : {}) });
+            })
+            .catch(err => {
+              console.error("Failed to load presets.json", err);
+            });
+        }, []);
+
+
+        function loadPreset(name) {
+          const preset = presets[name];
+          if (!preset) {
+            alert("Preset not found");
+            return;
+          }
+
+          setHeadlines(preset.headlines || []);
+          setImages(preset.images.map(img => ({
+              ...img,
+              scale: img.scale !== undefined ? img.scale : 1,
+              fitMode: img.fitMode || { top: false, right: false, bottom: false, left: false },
+              stretchEnabled: img.stretchEnabled || false,
+          })) || []);
+          if (preset.width) setWidth(preset.width);
+          if (preset.height) setHeight(preset.height);
+          if (preset.logo) setLogo(preset.logo);
+          if (preset.fileName) setFileName(preset.fileName);
+          if (preset.vignette !== undefined) setVignette(preset.vignette);
+          if (preset.globalBorderColor) setGlobalBorderColor(preset.globalBorderColor);
+          if (preset.globalBorderSize !== undefined) setGlobalBorderSize(preset.globalBorderSize);
+          if (preset.background) {
+            setBackground(preset.background);
+          }
+          if (preset.draggableHeadlines !== undefined) {
+              setDraggableHeadlines(preset.draggableHeadlines);
+          } else {
+              setDraggableHeadlines(true);
+          }
+
+          setCurrentPresetName(name);
+
+          alert(`${name} preset loaded!`);
+        }
+
+        function savePreset(name) {
+          if (!name) {
+            alert("Please enter a preset name");
+            return;
+          }
+
+          const newPreset = {
+            headlines, 
+            images: images.map(img => ({
+                id: img.id,
+                src: img.src,
+                x: img.x,
+                y: img.y,
+                scale: img.scale,
+                zIndex: img.zIndex,
+                borderEnabled: img.borderEnabled,
+                stretchEnabled: img.stretchEnabled,
+                fitMode: img.fitMode,
+            })),
+            width, height, logo, fileName, vignette,
+            globalBorderColor, globalBorderSize, background,
+            draggableHeadlines
+          };
+
+          const updatedPresets = { ...presets, [name]: newPreset };
+          setPresets(updatedPresets);
+          localStorage.setItem("userPresets", JSON.stringify(updatedPresets));
+
+          alert(`Preset "${name}" saved!`);
+        }
+
+        function deletePreset(name) {
+          if (!name) {
+            alert("Please select a preset to delete");
+            return;
+          }
+          if (DEFAULT_PRESETS[name]) {
+            alert("Default presets cannot be deleted");
+            return;
+          }
+
+          const updatedPresets = { ...presets };
+          delete updatedPresets[name];
+          setPresets(updatedPresets);
+          localStorage.setItem("userPresets", JSON.stringify(updatedPresets));
+
+          alert(`Preset "${name}" deleted!`);
+        }
+
+        function resetPresets() {
+          if (!window.confirm("This will delete all your saved presets and restore only the defaults. Continue?")) {
+            return;
+          }
+          setPresets(DEFAULT_PRESETS);
+          localStorage.removeItem("userPresets");
+          alert("Presets reset to default!");
+        }
+
+        function exportPresets() {
+          const json = JSON.stringify(presets, null, 2);
+          navigator.clipboard.writeText(json)
+            .then(() => alert("All presets copied to clipboard!"))
+            .catch(err => console.error("Clipboard copy failed", err));
+        }
+
+        function importPresets() {
+          const json = prompt("Paste presets JSON here:");
+          if (!json) return;
+          try {
+            const parsed = JSON.parse(json);
+            if (typeof parsed !== "object") throw new Error("Invalid format");
+
+            const updatedPresets = { ...DEFAULT_PRESETS, ...parsed };
+            setPresets(updatedPresets);
+            localStorage.setItem("userPresets", JSON.stringify(parsed));
+
+            alert("Presets imported successfully!");
+          } catch (e) {
+            alert("Invalid presets JSON");
+            console.error("Import failed:", e);
+          }
+        }
+
+        const [globalBorderColor, setGlobalBorderColor] = useState("#ffffff");
+        const [globalBorderSize, setGlobalBorderSize] = useState(4);
+        const [images, setImages] = useState([]);
+        const [activeImageId, setActiveImageId] = useState(null);
+        const [width, setWidth] = useState(1080);
+        const [height, setHeight] = useState(1080);
+        const [logo, setLogo] = useState({ show: true, position: "top-right" });
+        const [fileName, setFileName] = useState("social-card");
+        const [background, setBackground] = useState({
+          type: 'solid',
+          color: '#000000',
+          gradient: {
+            color1: '#ffffff',
+            color2: '#000000',
+            direction: 'to bottom right'
+          },
+          imageSrc: 'bg.png'
+        });
+		  
+        const [headlines, setHeadlines] = useState([{
+          id: Date.now(),
+          text: "Headline here",
+          fontSize: 90,
+          lineHeight: 1.2,
+          fontFamily: "JameelNooriNastaliq",
+          textColor: "#ffffff",
+          textPos: { x: 100, y: 200 },
+          direction: "rtl",
+          textAlign: "right",
+          sidelineOffset: 0,
+          shadow: { enabled: true, offsetX: 2, offsetY: 2, blur: 6, color: "rgba(0,0,0,0.6)" },
+          stroke: { enabled: false, width: 1, color: "#000000" },
+          sideline: { show: true, width: 30, gap: 60, height: 0, color: "#ff0000", opacity: 1 },
+          isCollapsed: false,
+		  width: 800,
+        }]);
+        const [expandedHeadlineId, setExpandedHeadlineId] = useState(null);
+        const headlineRefs = useRef({});
+        const [draggableHeadlines, setDraggableHeadlines] = useState(true);
+
+        function addHeadline() {
+          const newHeadline = {
+            id: Date.now(),
+            text: "New Headline",
+            fontSize: 60,
+            lineHeight: 1.2,
+            fontFamily: "JameelNooriNastaliq",
+            textColor: "#ffffff",
+            textPos: { x: 100, y: 300 },
+            direction: "rtl",
+            textAlign: "right",
+            sidelineOffset: 0,
+            shadow: { enabled: true, offsetX: 2, offsetY: 2, blur: 6, color: "rgba(0,0,0,0.6)" },
+            stroke: { enabled: false, width: 1, color: "#000000" },
+            sideline: { show: true, width: 30, gap: 60, height: 0, color: "#ff0000", opacity: 1 },
+            isCollapsed: false,
+			width: 800,
+          };
+          setHeadlines([...headlines, newHeadline]);
+        }
+
+        function updateHeadline(id, updatedProps) {
+          setHeadlines(current => current.map(h => h.id === id ? { ...h, ...updatedProps } : h));
+        }
+
+        function deleteHeadline(id) {
+          setHeadlines(current => current.filter(h => h.id !== id));
+          if (expandedHeadlineId === id) {
+            setExpandedHeadlineId(null);
+          }
+        }
+
+		  useEffect(() => {
+  try {
+    localStorage.setItem('socialCardAuth', JSON.stringify(isAuthenticated));
+  } catch (e) {
+    console.error("Failed to save authentication status to localStorage", e);
+  }
+}, [isAuthenticated]);
+		  
+
+        useEffect(() => {
+          try {
+            const savedData = localStorage.getItem('socialCardData');
+            if (savedData) {
+              const parsedData = JSON.parse(savedData);
+              if (parsedData.headlines) setHeadlines(parsedData.headlines);
+              if (parsedData.images) setImages(parsedData.images.map(img => ({
+                ...img,
+                fitMode: img.fitMode || { top: false, right: false, bottom: false, left: false },
+                stretchEnabled: img.stretchEnabled || false,
+              })));
+              if (parsedData.width) setWidth(parsedData.width);
+              if (parsedData.height) setHeight(parsedData.height);
+              if (parsedData.logo) setLogo(parsedData.logo);
+              if (parsedData.fileName) setFileName(parsedData.fileName);
+              if (parsedData.background) setBackground(parsedData.background);
+            }
+          } catch (e) {
+            console.error("Failed to load data from localStorage", e);
+          }
+        }, []);
+
+        useEffect(() => {
+          const dataToSave = {
+            headlines, images, width, height, logo, fileName, background
+          };
+          try {
+            localStorage.setItem('socialCardData', JSON.stringify(dataToSave));
+          } catch (e) {
+            console.error("Failed to save data to localStorage", e);
+          }
+        }, [headlines, images, width, height, logo, fileName, background]);
+
+        useEffect(() => {
+          const handleBeforeUnload = (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+          };
+          window.addEventListener('beforeunload', handleBeforeUnload);
+
+          return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+          };
+        }, []);
+
+        useEffect(() => {
+          headlines.forEach(h => {
+            const el = headlineRefs.current[h.id];
+            if (!el) return;
+
+            const newHeight = el.offsetHeight;
+
+            if ((h.sideline?.height || 0) !== newHeight) {
+              updateHeadline(h.id, {
+                sideline: { ...h.sideline, height: newHeight }
+              });
+            }
+          });
+        }, [headlines, updateHeadline]);
+
+        function onImageUpload(e) {
+          const files = e.target.files;
+          if (!files) return;
+        
+          const newImages = Array.from(files).map((file, index) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            return new Promise((resolve) => {
+              img.onload = () => {
+                const newImg = {
+                  id: Date.now() + index,
+                  src: img.src,
+                  x: 0,
+                  y: 0,
+                  scale: 1,
+                  zIndex: images.length + index,
+                  borderEnabled: false,
+                  fitMode: { top: false, right: false, bottom: false, left: false },
+                  originalWidth: img.naturalWidth,
+                  originalHeight: img.naturalHeight,
+                };
+                resolve(newImg);
+              };
+            });
+          });
+        
+          Promise.all(newImages).then(resolvedImages => {
+            setImages([...images, ...resolvedImages]);
+          });
+        }
+
+        function onBackgroundUpload(e) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              setBackground({
+                ...background,
+                type: 'image',
+                imageSrc: event.target.result
+              });
+            };
+            reader.readAsDataURL(file);
+          }
+        }
+
+        function getCoords(e) {
+          return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+        }
+
+        function startDragImage(e, id) {
+          e.preventDefault();
+          e.stopPropagation();
+          setActiveImageId(id);
+          const { x: startX, y: startY } = getCoords(e);
+          const img = images.find(im => im.id === id);
+          const initX = img.x, initY = img.y;
+          const maxZ = Math.max(...images.map(im => im.zIndex));
+          setImages((imgs) => imgs.map(im => im.id === id ? { ...im, zIndex: maxZ + 1 } : im));
+
+          function onMove(ev) {
+            const { x: currentX, y: currentY } = getCoords(ev);
+            setImages((imgs) => imgs.map(im => im.id === id ? { ...im, x: initX + currentX - startX, y: initY + currentY - startY } : im));
+          }
+
+          function onUp() {
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+            window.removeEventListener("touchmove", onMove);
+            window.removeEventListener("touchend", onUp);
+          }
+          window.addEventListener("mousemove", onMove);
+          window.addEventListener("mouseup", onUp);
+          window.addEventListener("touchmove", onMove);
+          window.addEventListener("touchend", onUp);
+        }
+
+     function startDragText(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const { x: startX, y: startY } = getCoords(e);
+  const headline = headlines.find(h => h.id === id);
+  const initPos = { ...headline.textPos };
+  const isRTL = headline.direction === "rtl";
+
+  function onMove(ev) {
+    const { x: currentX, y: currentY } = getCoords(ev);
+    const dx = currentX - startX;
+    const dy = currentY - startY;
+
+    updateHeadline(id, {
+      textPos: {
+        x: isRTL ? initPos.x - dx : initPos.x + dx, // 👈 invert movement for RTL
+        y: initPos.y + dy,
+      },
+    });
+  }
+
+  function onUp() {
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+    window.removeEventListener("touchmove", onMove);
+    window.removeEventListener("touchend", onUp);
+  }
+
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", onUp);
+  window.addEventListener("touchmove", onMove);
+  window.addEventListener("touchend", onUp);
+}
+
+
+
+        function startDragVignette(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const { x: startX, y: startY } = getCoords(e);
+          const initX = vignette.x, initY = vignette.y;
+          function onMove(ev) {
+            const { x: currentX, y: currentY } = getCoords(ev);
+            setVignette(v => ({ ...v, x: initX + currentX - startX, y: initY + currentY - startY }));
+          }
+          function onUp() {
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+            window.removeEventListener("touchmove", onMove);
+            window.removeEventListener("touchend", onUp);
+          }
+          window.addEventListener("mousemove", onMove);
+          window.addEventListener("mouseup", onUp);
+          window.addEventListener("touchmove", onMove);
+          window.addEventListener("touchend", onUp);
+        }
+
+        function exportAsImage() {
+          if (!containerRef.current) return;
+
+          setActiveImageId(null);
+
+          setTimeout(() => {
+            const verticalOffset = 3;
+            html2canvas(containerRef.current, {
+              useCORS: true,
+              scale: 1,
+              onclone: (clonedDoc) => {
+                const clonedLines = clonedDoc.querySelectorAll(".sideline-clone");
+                clonedLines.forEach(clonedLine => {
+                  const currentTop = parseFloat(clonedLine.style.top || "0");
+                  clonedLine.style.top = currentTop + verticalOffset + "px";
+                });
+              }
+            })
+              .then((canvas) => {
+                const link = document.createElement("a");
+                link.download = (fileName && fileName.trim() ? fileName.trim() : "social-card") + ".png";
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+              })
+              .catch(err => {
+                console.log("export failed:", err);
+              });
+          }, 0);
+        }
+
+        function updateImage(id, updatedProps) {
+          setImages(current => current.map(im => im.id === id ? { ...im, ...updatedProps } : im));
+        }
+
+        function updateImageFitMode(id, corner) {
+          setImages(current => current.map(im => {
+            if (im.id === id) {
+              const newFitMode = { ...im.fitMode, [corner]: !im.fitMode[corner] };
+              let newX = im.x;
+              let newY = im.y;
+              let newScale = im.scale;
+              
+              // Count how many checkboxes are selected
+              const selectedCount = Object.values(newFitMode).filter(Boolean).length;
+              
+              const isStretchedHorizontally = newFitMode.left && newFitMode.right;
+              const isStretchedVertically = newFitMode.top && newFitMode.bottom;
+
+              if (selectedCount === 0) {
+                  newX = 0;
+                  newY = 0;
+                  newScale = 1;
+              } else if (isStretchedHorizontally && isStretchedVertically) {
+                  // Case: All four corners checked - fills the entire canvas (object-fit: cover)
+                  const xScale = width / im.originalWidth;
+                  const yScale = height / im.originalHeight;
+                  newScale = Math.max(xScale, yScale);
+                  const newScaledWidth = im.originalWidth * newScale;
+                  const newScaledHeight = im.originalHeight * newScale;
+                  newX = (width - newScaledWidth) / 2;
+                  newY = (height - newScaledHeight) / 2;
+              } else if (isStretchedHorizontally) {
+                  // Case: Left and Right selected - stretches horizontally
+                  newScale = width / im.originalWidth;
+                  newX = 0;
+                  // Vertical alignment
+                  if (newFitMode.top) {
+                      newY = 0;
+                  } else if (newFitMode.bottom) {
+                      const newScaledHeight = im.originalHeight * newScale;
+                      newY = height - newScaledHeight;
+                  } else {
+                      const newScaledHeight = im.originalHeight * newScale;
+                      newY = (height - newScaledHeight) / 2;
+                  }
+              } else if (isStretchedVertically) {
+                  // Case: Top and Bottom selected - stretches vertically
+                  newScale = height / im.originalHeight;
+                  newY = 0;
+                  // Horizontal alignment
+                  if (newFitMode.left) {
+                      newX = 0;
+                  } else if (newFitMode.right) {
+                      const newScaledWidth = im.originalWidth * newScale;
+                      newX = width - newScaledWidth;
+                  } else {
+                      const newScaledWidth = im.originalWidth * newScale;
+                      newX = (width - newScaledWidth) / 2;
+                  }
+              } else {
+                  // Case: Single corner or non-opposite sides - simple alignment
+                  newScale = 1;
+                  newX = im.x;
+                  newY = im.y;
+                  if (newFitMode.left) newX = 0;
+                  if (newFitMode.right) newX = width - im.originalWidth;
+                  if (newFitMode.top) newY = 0;
+                  if (newFitMode.bottom) newY = height - im.originalHeight;
+              }
+
+              return {
+                ...im,
+                fitMode: newFitMode,
+                x: newX,
+                y: newY,
+                scale: newScale,
+              };
+            }
+            return im;
+          }));
+        }
+        
+        function changeImageScale(id, scale) { 
+            const newScale = parseFloat(scale);
+            if (!isNaN(newScale)) {
+                setImages((imgs) => imgs.map(im => im.id === id ? { ...im, scale: newScale } : im)) 
+            }
+        }
+        
+        function changeVignetteScale(scale) {
+            const newScale = parseFloat(scale);
+            if (!isNaN(newScale)) {
+                setVignette(v => ({ ...v, scale: newScale }));
+            }
+        }
+
+        function bringForward(id) { const maxZ = Math.max(...images.map(im => im.zIndex)); setImages((imgs) => imgs.map(im => im.id === id ? { ...im, zIndex: maxZ + 1 } : im)) }
+        function sendBackward(id) { const minZ = Math.min(...images.map(im => im.zIndex)); setImages((imgs) => imgs.map(im => im.id === id ? { ...im, zIndex: minZ - 1 } : im)) }
+        function deleteImage(id) { setImages((imgs) => imgs.filter(im => im.id !== id)) }
+        function selectImage(id) {
+          setActiveImageId(id);
+          const maxZ = Math.max(...images.map(im => im.zIndex));
+          setImages((imgs) => imgs.map(im => im.id === id ? { ...im, zIndex: maxZ + 1 } : im));
+        }
+
+        const backgroundStyle = React.useMemo(() => {
+          switch (background.type) {
+            case 'solid':
+              return { backgroundColor: background.color };
+            case 'gradient':
+              return {
+                backgroundImage: `linear-gradient(${background.gradient.direction}, ${background.gradient.color1}, ${background.gradient.color2})`
+              };
+            case 'image':
+              return {
+                backgroundImage: `url('${background.imageSrc}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              };
+            default:
+              return {};
+          }
+        }, [background]);
+
+        function getImageStyle(img) {
+          return {
+            left: img.x,
+            top: img.y,
+            transform: `scale(${img.scale})`,
+            transformOrigin: 'top left',
+            width: img.originalWidth,
+            height: img.originalHeight,
+          };
+        }
+
+        const isStretched = (img) => {
+          return img.fitMode.left && img.fitMode.right || img.fitMode.top && img.fitMode.bottom;
+        };
+
+		  // Password submission handler
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    const password = e.target.elements.password.value;
+    // ⚠️ Replace "YOUR_PASSWORD" with your actual password
+    if (password === "sabah123") {
+      setIsAuthenticated(true);
+    } else {
+      alert("Incorrect password.");
+    }
+  };
+
+  // Conditional render based on isAuthenticated state
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-200">
+        <form onSubmit={handlePasswordSubmit} className="p-8 bg-white rounded-lg shadow-md">
+          <h2 className="text-xl font-bold mb-4">Enter Password to Access</h2>
+          <input
+            type="password"
+            name="password"
+            placeholder="Enter password"
+            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
+          />
+          <button
+            type="submit"
+            className="mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring"
+          >
+            Submit
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+        const canDragHeadlines = draggableHeadlines;
+
+
+        return (
+          <div className="p-4 max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Controls */}
+              <div className="w-full md:w-96 space-y-4">
+                <h2 className="text-xl font-semibold">Controls</h2>
+
+                {/* Background Controls */}
+                <div className="bg-white p-3 rounded shadow">
+                  <div
+                    className="flex justify-between items-center cursor-pointer"
+                    onClick={() => setIsBackgroundCollapsed(!isBackgroundCollapsed)}
+                  >
+                    <h3 className="text-lg font-medium">Background</h3>
+                    <span>{isBackgroundCollapsed ? '▼' : '▲'}</span>
+                  </div>
+                  {!isBackgroundCollapsed && (
+                    <div className="mt-2">
+                      <select
+                        value={background.type}
+                        onChange={e => setBackground({ ...background, type: e.target.value })}
+                        className="w-full border p-1 rounded mb-2"
+                      >
+                        <option value="solid">Solid Color</option>
+                        <option value="image">Image from File</option>
+                        <option value="gradient">Gradient</option>
+                      </select>
+
+                      {background.type === 'solid' && (
+                        <div className="flex items-center gap-2">
+                          <label>Color:</label>
+                          <input
+                            type="color"
+                            value={background.color}
+                            onChange={e => setBackground({ ...background, color: e.target.value })}
+                            className="w-10 h-8 p-0 border rounded"
+                          />
+                        </div>
+                      )}
+
+                      {background.type === 'image' && (
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium">Image from File</label>
+                          <div className="flex gap-2 items-center">
+                            <input type="file" accept="image/png, image/jpeg" onChange={onBackgroundUpload} className="mt-2" />
+                            <button
+                              onClick={() => setBackground({
+                                ...background,
+                                type: 'image',
+                                imageSrc: 'bg.png'
+                              })}
+                              className="bg-blue-500 text-white px-3 py-1 rounded text-sm whitespace-nowrap"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+
+                      {background.type === 'gradient' && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <label>Color 1:</label>
+                            <input
+                              type="color"
+                              value={background.gradient.color1}
+                              onChange={e => setBackground({ ...background, gradient: { ...background.gradient, color1: e.target.value } })}
+                              className="w-10 h-8 p-0 border rounded"
+                            />
+                            <label className="ml-4">Color 2:</label>
+                            <input
+                              type="color"
+                              value={background.gradient.color2}
+                              onChange={e => setBackground({ ...background, gradient: { ...background.gradient, color2: e.target.value } })}
+                              className="w-10 h-8 p-0 border rounded"
+                            />
+                          </div>
+                          <div className="mt-2">
+                            <label className="block text-sm font-medium">Direction</label>
+                            <select
+                              value={background.gradient.direction}
+                              onChange={e => setBackground({ ...background, gradient: { ...background.gradient, direction: e.target.value } })}
+                              className="w-full border p-1 rounded mt-1"
+                            >
+                              <option value="to top">To Top</option>
+                              <option value="to bottom">To Bottom</option>
+                              <option value="to left">To Left</option>
+                              <option value="to right">To Right</option>
+                              <option value="to top left">To Top Left</option>
+                              <option value="to top right">To Top Right</option>
+                              <option value="to bottom left">To Bottom Left</option>
+                              <option value="to bottom right">To Bottom Right</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Multiple Headlines */}
+                <div className="bg-white p-3 rounded shadow">
+                  <h3 className="text-lg font-medium mb-2">Headlines</h3>
+                  <button onClick={addHeadline} className="w-full bg-green-500 text-white py-1 rounded mb-2">Add New Headline</button>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <input
+                      type="checkbox"
+                      id="dragToggle"
+                      checked={draggableHeadlines}
+                      onChange={(e) => setDraggableHeadlines(e.target.checked)}
+                    />
+                    <label htmlFor="dragToggle" className="text-sm font-medium">Enable drag for headlines</label>
+                  </div>
+                  {headlines.map(headline => (
+                    <div key={headline.id} className="border-b last:border-b-0 py-2">
+                      <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedHeadlineId(expandedHeadlineId === headline.id ? null : headline.id)}>
+                        <span className="font-semibold">{headline.text.substring(0, 20)}...</span>
+                        <span>{expandedHeadlineId === headline.id ? '▲' : '▼'}</span>
+                      </div>
+                      {expandedHeadlineId === headline.id && (
+                        <div className="mt-2 space-y-2">
+                          <label className="block text-sm font-medium">Text</label>
+                          <textarea dir={headline.direction} value={headline.text} onChange={e => updateHeadline(headline.id, { text: e.target.value })} className="w-full border p-2 rounded" />
+                          <label className="block text-sm mt-2">Font size</label>
+                          <input type="number" value={headline.fontSize} onChange={e => updateHeadline(headline.id, { fontSize: parseInt(e.target.value) })} className="w-full border p-1 rounded" />
+                          <label className="block text-sm mt-2">Line height</label>
+                          <input type="number" step="0.1" value={headline.lineHeight} onChange={e => updateHeadline(headline.id, { lineHeight: parseFloat(e.target.value) })} className="w-full border p-1 rounded" />
+                          <label className="block text-sm mt-2">Text color</label>
+                          <input type="color" value={headline.textColor} onChange={e => updateHeadline(headline.id, { textColor: e.target.value })} />
+                          <label className="block text-sm mt-3">Font family</label>
+                          <select value={headline.fontFamily} onChange={e => updateHeadline(headline.id, { fontFamily: e.target.value })} className="w-full border p-1 rounded mt-2">
+                            <option value="Jameel Noori Nastaleeq">Jameel Noori Nastaleeq</option>
+                            <option value="JameelNooriNastaliq">Jameel Noori embed</option>
+                            <option value="Pangea Afrikan Trial">Pangea</option>
+                            <option value="Tahoma">Tahoma</option>
+                            <option value="Arial">Arial</option>
+                          </select>
+                          <label className="block text-sm mt-3">Text direction</label>
+                          <select value={headline.direction} onChange={e => updateHeadline(headline.id, { direction: e.target.value })} className="w-full border p-1 rounded mt-2">
+                            <option value="ltr">Left to Right</option>
+                            <option value="rtl">Right to Left</option>
+                          </select>
+                          <label className="block text-sm mt-3">Text align</label>
+                          <select value={headline.textAlign} onChange={e => updateHeadline(headline.id, { textAlign: e.target.value })} className="w-full border p-1 rounded mt-2">
+                            <option value="left">Left</option>
+                            <option value="right">Right</option>
+                            <option value="center">Center</option>
+                            <option value="justify">Justify</option>
+                          </select>
+                          <label className="block text-sm mt-3">X position</label>
+                          <input type="number" value={headline.textPos.x} onChange={e => updateHeadline(headline.id, { textPos: { ...headline.textPos, x: parseFloat(e.target.value) } })} className="w-full border p-1 rounded" />
+                          <label className="block text-sm mt-3">Y position</label>
+                          <input type="number" value={headline.textPos.y} onChange={e => updateHeadline(headline.id, { textPos: { ...headline.textPos, y: parseFloat(e.target.value) } })} className="w-full border p-1 rounded" />
+							<label className="block text-sm mt-3">Headline width</label>
+							<input 
+							  type="number"
+							  value={headline.width || 800}
+							  onChange={e => updateHeadline(headline.id, { width: parseInt(e.target.value) })}
+							  className="w-full border p-1 rounded"
+							/>
+
+                          {/* Shadow Controls */}
+                          <div className="mt-4">
+                            <label className="flex items-center">
+                              <input type="checkbox" checked={headline.shadow.enabled} onChange={e => updateHeadline(headline.id, { shadow: { ...headline.shadow, enabled: e.target.checked } })} />
+                              <span className="ml-2">Enable shadow</span>
+                            </label>
+                            {headline.shadow.enabled && <div className="mt-2 grid grid-cols-2 gap-2">
+                              <label className="text-sm">OffsetX<input type="number" value={headline.shadow.offsetX} onChange={e => updateHeadline(headline.id, { shadow: { ...headline.shadow, offsetX: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                              <label className="text-sm">OffsetY<input type="number" value={headline.shadow.offsetY} onChange={e => updateHeadline(headline.id, { shadow: { ...headline.shadow, offsetY: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                              <label className="text-sm">Blur<input type="number" value={headline.shadow.blur} onChange={e => updateHeadline(headline.id, { shadow: { ...headline.shadow, blur: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                              <label className="text-sm">Color<input type="color" value={headline.shadow.color} onChange={e => updateHeadline(headline.id, { shadow: { ...headline.shadow, color: e.target.value } })} className="w-full border p-1 rounded" /></label>
+                            </div>}
+                          </div>
+
+                          {/* Stroke Controls */}
+                          <div className="mt-4">
+                            <label className="flex items-center">
+                              <input type="checkbox" checked={headline.stroke.enabled} onChange={e => updateHeadline(headline.id, { stroke: { ...headline.stroke, enabled: e.target.checked } })} />
+                              <span className="ml-2">Enable stroke</span>
+                            </label>
+                            {headline.stroke.enabled && <div className="mt-2 grid grid-cols-2 gap-2">
+                              <label className="text-sm">Width<input type="number" value={headline.stroke.width} onChange={e => updateHeadline(headline.id, { stroke: { ...headline.stroke, width: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                              <label className="text-sm">Color<input type="color" value={headline.stroke.color} onChange={e => updateHeadline(headline.id, { stroke: { ...headline.stroke, color: e.target.value } })} className="w-full border p-1 rounded" /></label>
+                            </div>}
+                          </div>
+
+                          {/* Sideline Controls */}
+                          <div className="mt-4">
+                            <label className="flex items-center">
+                              <input type="checkbox" checked={headline.sideline.show} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, show: e.target.checked } })} />
+                              <span className="ml-2">Show sideline</span>
+                            </label>
+                            {headline.sideline.show && <>
+                              <label className="block text-sm">Width<input type="number" value={headline.sideline.width} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, width: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                              <label className="block text-sm">Gap<input type="number" value={headline.sideline.gap} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, gap: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                              <label className="block text-sm">Height<input type="number" value={headline.sideline.height} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, height: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                              <label className="block text-sm">Color<input type="color" value={headline.sideline.color} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, color: e.target.value } })} className="w-full border p-1 rounded" /></label>
+                              <label className="block text-sm">Transparency<input type="range" min="0" max="1" step="0.05" value={headline.sideline.opacity} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, opacity: parseFloat(e.target.value) } })} className="w-full" /></label>
+                              <label className="block text-sm">Vertical offset<input type="number" value={headline.sidelineOffset} onChange={e => updateHeadline(headline.id, { sidelineOffset: parseInt(e.target.value) })} className="w-full border p-1 rounded mt-1" /></label>
+                            </>}
+                          </div>
+                          <button onClick={() => deleteHeadline(headline.id)} className="w-full bg-red-500 text-white py-1 rounded mt-2">Delete</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Images Controls */}
+                <div className="bg-white p-3 rounded shadow">
+                    <div
+                      className="flex justify-between items-center cursor-pointer"
+                      onClick={() => setIsImagesCollapsed(!isImagesCollapsed)}
+                    >
+                      <h3 className="text-lg font-medium">Images</h3>
+                      <span>{isImagesCollapsed ? '▼' : '▲'}</span>
+                    </div>
+                    {!isImagesCollapsed && (
+                      <div className="mt-2">
+                        <label className="block text-sm font-medium">Upload images</label>
+                        <input type="file" accept="image/*" multiple onChange={onImageUpload} className="mt-2" />
+                        {images.map(img => (
+                          <div key={img.id} className={`bg-white p-3 rounded shadow space-y-1 ${activeImageId === img.id ? 'border-2 border-blue-500' : ''}`}>
+
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Image {img.id}</span>
+                              <button onClick={() => deleteImage(img.id)} className="text-red-500 text-sm">Delete</button>
+                            </div>
+                            <label className="block text-sm">Zoom</label>
+                            <div className="flex items-center gap-2 mt-1">
+                                <button onClick={() => changeImageScale(img.id, img.scale - 0.01)} className="bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold">-</button>
+                                <input
+                                    type="number"
+                                    min="0.1"
+                                    max="3"
+                                    step="0.01"
+                                    value={img.scale}
+                                    onChange={e => changeImageScale(img.id, e.target.value)}
+                                    className="w-full border p-1 rounded text-center"
+                                />
+                                <button onClick={() => changeImageScale(img.id, img.scale + 0.01)} className="bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold">+</button>
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                              <button onClick={() => bringForward(img.id)} className="bg-gray-200 px-2 py-1 rounded text-sm">Bring Forward</button>
+                              <button onClick={() => sendBackward(img.id)} className="bg-gray-200 px-2 py-1 rounded text-sm">Send Backward</button>
+                            </div>
+
+                            {/* New Fit controls */}
+                            <div className="mt-4">
+                                <label className="flex items-center">
+                                    <span className="ml-2 text-sm font-semibold">Align Image</span>
+                                </label>
+                                <div className="space-y-2 mt-2">
+                                    <div className="flex items-center justify-around mt-2">
+                                        <label className="flex items-center gap-1 text-xs">
+                                            <input type="checkbox" checked={img.fitMode.top} onChange={() => updateImageFitMode(img.id, 'top')} /> Top
+                                        </label>
+                                        <label className="flex items-center gap-1 text-xs">
+                                            <input type="checkbox" checked={img.fitMode.right} onChange={() => updateImageFitMode(img.id, 'right')} /> Right
+                                        </label>
+                                        <label className="flex items-center gap-1 text-xs">
+                                            <input type="checkbox" checked={img.fitMode.bottom} onChange={() => updateImageFitMode(img.id, 'bottom')} /> Bottom
+                                        </label>
+                                        <label className="flex items-center gap-1 text-xs">
+                                            <input type="checkbox" checked={img.fitMode.left} onChange={() => updateImageFitMode(img.id, 'left')} /> Left
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                          </div>
+                        ))}
+
+                        <div className="flex items-center gap-2 mb-4">
+                          <label className="text-sm">Border color:</label>
+                          <input
+                            type="color"
+                            value={globalBorderColor}
+                            onChange={(e) => setGlobalBorderColor(e.target.value)}
+                            className="w-10 h-8 p-0 border rounded"
+                          />
+                          <label className="text-sm ml-2">Size:</label>
+                          <input
+                            type="number"
+                            value={globalBorderSize}
+                            onChange={(e) => setGlobalBorderSize(Number(e.target.value))}
+                            className="w-16 px-2 py-1 border rounded"
+                            min="0"
+                          />
+                        </div>
+
+                        {activeImageId && (
+                          <div className="flex items-center gap-2 mb-4">
+                            <label className="text-sm">Show border</label>
+                            <input
+                              type="checkbox"
+                              checked={
+                                images.find((img) => img.id === activeImageId)?.borderEnabled ?? false
+                              }
+                              onChange={(e) =>
+                                setImages((prev) =>
+                                  prev.map((img) =>
+                                    img.id === activeImageId
+                                      ? { ...img, borderEnabled: e.target.checked }
+                                      : img
+                                  )
+                                )
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                </div>
+
+                {/* Vignette Controls */}
+                <div className="bg-white p-3 rounded shadow">
+                  <div
+                    className="flex justify-between items-center cursor-pointer"
+                    onClick={() => setIsVignetteCollapsed(!isVignetteCollapsed)}
+                  >
+                    <h3 className="text-lg font-medium">Finalize</h3>
+                    <span>{isVignetteCollapsed ? '▼' : '▲'}</span>
+                  </div>
+                  {!isVignetteCollapsed && (
+                    <div className="mt-2 space-y-1">
+                   <label className="flex items-center">
+  <input
+    type="checkbox"
+    checked={vignette.show}
+    onChange={e => {
+      const checked = e.target.checked;
+
+      // when turning ON vignette, set it to same Base64 as background
+      if (checked && backgroundStyle?.backgroundImage) {
+        const base64Src = backgroundStyle.backgroundImage
+          .replace(/^url\(["']?/, "")
+          .replace(/["']?\)$/, "");
+        setVignette({
+          ...vignette,
+          show: true,
+          src: base64Src,
+          locked: true, // auto-lock when using base64
+          x: 0,
+          y: 0,
+          scale: 1,
+        });
+      } else {
+        // turning OFF vignette
+        setVignette({ ...vignette, show: false, locked: false });
+      }
+    }}
+  />
+  <span className="ml-2">Finalize SM Card</span>
+</label>
+
+{/* Lock position option */}
+{vignette.show && (
+  <label className="flex items-center mt-1">
+    <input
+      type="checkbox"
+      checked={vignette.locked}
+      disabled={!!vignette.src} // auto-locked if using base64
+      onChange={e =>
+        setVignette({ ...vignette, locked: e.target.checked })
+      }
+    />
+    <span className="ml-2">
+      Lock Position {vignette.src ? "(auto-locked)" : ""}
+    </span>
+  </label>
+)}
+                      {vignette.show && <>
+                        <label className="block text-sm">Zoom</label>
+                        <div className="flex items-center gap-2 mt-1">
+                            <button onClick={() => changeVignetteScale(vignette.scale - 0.01)} className="bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold">-</button>
+                            <input
+                                type="number"
+                                min="0.1"
+                                max="3"
+                                step="0.01"
+                                value={vignette.scale}
+                                onChange={e => changeVignetteScale(e.target.value)}
+                                className="w-full border p-1 rounded text-center"
+                            />
+                            <button onClick={() => changeVignetteScale(vignette.scale + 0.01)} className="bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold">+</button>
+                        </div>
+                      </>}
+                    </div>
+                  )}
+                </div>
+
+                {/* Logo Controls */}
+                <div className="bg-white p-3 rounded shadow">
+                    <div
+                      className="flex justify-between items-center cursor-pointer"
+                      onClick={() => setIsLogoCollapsed(!isLogoCollapsed)}
+                    >
+                      <h3 className="text-lg font-medium">Logo</h3>
+                      <span>{isLogoCollapsed ? '▼' : '▲'}</span>
+                    </div>
+                    {!isLogoCollapsed && (
+                      <div className="mt-2">
+                        <label className="flex items-center">
+                          <input type="checkbox" checked={logo.show} onChange={e => setLogo({ ...logo, show: e.target.checked })} />
+                          <span className="ml-2">Show Logo</span>
+                        </label>
+                        {logo.show &&
+                          <select value={logo.position} onChange={e => setLogo({ ...logo, position: e.target.value })} className="w-full border p-1 rounded mt-2">
+                            <option value="top-left">Top Left</option>
+                            <option value="top-right">Top Right</option>
+							<option value="top-center">Top Center</option>
+                            <option value="bottom-left">Bottom Left</option>
+                            <option value="bottom-right">Bottom Right</option>
+                          </select>
+                        }
+                      </div>
+                    )}
+                </div>
+
+                {/* Canvas Controls */}
+                <div className="bg-white p-3 rounded shadow">
+                  <div
+                    className="flex justify-between items-center cursor-pointer"
+                    onClick={() => setIsCanvasCollapsed(!isCanvasCollapsed)}
+                  >
+                    <h3 className="text-lg font-medium">Canvas</h3>
+                    <span>{isCanvasCollapsed ? '▼' : '▲'}</span>
+                  </div>
+                  {!isCanvasCollapsed && (
+                    <div className="mt-2">
+                      <label className="block text-sm font-medium">Canvas size</label>
+                      <div className="flex gap-2 mt-2 flex-wrap">
+                        <button
+                          onClick={() => { setWidth(1080); setHeight(1080); }}
+                          className="bg-gray-200 px-3 py-1 rounded"
+                        >
+                          Instagram Square
+                        </button>
+                        <button
+                          onClick={() => { setWidth(1080); setHeight(1920); }}
+                          className="bg-gray-200 px-3 py-1 rounded"
+                        >
+                          Instagram Story
+                        </button>
+                        <button
+                          onClick={() => { setWidth(1200); setHeight(720); }}
+                          className="bg-gray-200 px-3 py-1 rounded"
+                        >
+                          YouTube
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Presets */}
+                <div className="bg-white p-3 rounded shadow">
+                  <div
+                    className="flex justify-between items-center cursor-pointer"
+                    onClick={() => setIsPresetsCollapsed(!isPresetsCollapsed)}
+                  >
+                    <h3 className="text-lg font-medium">Presets</h3>
+                    <span>{isPresetsCollapsed ? '▼' : '▲'}</span>
+                  </div>
+                  {!isPresetsCollapsed && (
+                    <div className="mt-2">
+                      <select id="presetSelect" className="w-full border p-1 rounded mb-2">
+                        <option value="">Select a preset</option>
+                        {Object.keys(presets).map(key => (
+                          <option key={key} value={key}>{key}</option>
+                        ))}
+                      </select>
+
+                      <div className="flex space-x-2 mb-3">
+                        <button
+                          onClick={() => {
+                            const select = document.getElementById("presetSelect");
+                            if (select && select.value) loadPreset(select.value);
+                          }}
+                          className="flex-1 bg-purple-500 text-white py-1 rounded"
+                        >
+                          Load
+                        </button>
+                        <button
+                          onClick={() => {
+                            const select = document.getElementById("presetSelect");
+                            if (select && select.value) deletePreset(select.value);
+                          }}
+                          className="flex-1 bg-red-600 text-white py-1 rounded"
+                        >
+                          Delete
+                        </button>
+                      </div>
+
+                      <input
+                        id="presetName"
+                        type="text"
+                        placeholder="Preset name"
+                        className="w-full border p-1 rounded mb-2"
+                      />
+                      <button
+                        onClick={() => {
+                          const input = document.getElementById("presetName");
+                          if (input && input.value) savePreset(input.value);
+                        }}
+                        className="w-full bg-green-600 text-white py-1 rounded mb-2"
+                      >
+                        Save Current Layout as Preset
+                      </button>
+
+                      <button
+                        onClick={resetPresets}
+                        className="w-full bg-gray-600 text-white py-1 rounded mb-2"
+                      >
+                        Reset to Default Presets
+                      </button>
+
+                      <button
+                        onClick={exportPresets}
+                        className="w-full bg-blue-600 text-white py-1 rounded mb-2"
+                      >
+                        Export All Presets (Copy JSON)
+                      </button>
+                      <button
+                        onClick={importPresets}
+                        className="w-full bg-yellow-500 text-white py-1 rounded"
+                        >
+                        Import Presets (Paste JSON)
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* File Name & Export */}
+                <div className="bg-white p-3 rounded shadow">
+                  <div
+                    className="flex justify-between items-center cursor-pointer"
+                    onClick={() => setIsFileNameCollapsed(!isFileNameCollapsed)}
+                  >
+                    <h3 className="text-lg font-medium">File & Export</h3>
+                    <span>{isFileNameCollapsed ? '▼' : '▲'}</span>
+                  </div>
+                  {!isFileNameCollapsed && (
+                    <div className="mt-2 space-y-2">
+                      <label className="block text-sm">File name</label>
+                      <input type="text" value={fileName} onChange={e => setFileName(e.target.value)} className="w-full border p-1 rounded" />
+                      <button onClick={exportAsImage} className="w-full bg-blue-600 text-white py-2 rounded mt-2">Export PNG</button>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Preview */}
+              <div className="flex-1 max-w-full mt-6 md:mt-0">
+                <div className="sticky top-4">
+                  <div className="mb-2">Preview (Output size: {width}×{height})</div>
+                  <div ref={containerRef} className="relative mx-auto bg-black overflow-hidden" style={{ width, height, ...backgroundStyle }}>
+                    {/* Images */}
+                    {images.sort((a, b) => a.zIndex - b.zIndex).map(img => (
+                      <div
+                        key={img.id}
+                        onMouseDown={e => startDragImage(e, img.id)}
+                        onTouchStart={e => startDragImage(e, img.id)}
+                        className="absolute"
+                        style={{
+                          zIndex: img.zIndex,
+                          cursor: "grab",
+                          ...getImageStyle(img),
+                        }}
+                      >
+                        <img
+                          src={img.src}
+                          alt="Uploaded Image"
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            height: "100%",
+                            objectFit: isStretched(img) ? 'cover' : 'none',
+                            border: img.borderEnabled
+                              ? `${globalBorderSize}px solid ${globalBorderColor}`
+                              : "none",
+                          }}
+                        />
+                      </div>
+                    ))}
+                    
+
+                    {/* Vignette */}
+                    {vignette.show && (
+  <img
+    src={vignette.src || "Vignette.png"}
+    alt="Vignette"
+    onMouseDown={!vignette.locked ? startDragVignette : undefined}
+    onTouchStart={!vignette.locked ? startDragVignette : undefined}
+    style={{
+      position: "absolute",
+      left: vignette.x,
+      top: vignette.y,
+      transform: `scale(${vignette.scale})`,
+      cursor: vignette.locked ? "default" : "grab",
+      width: "100%",
+      height: "100%",
+      zIndex: 100,
+    }}
+  />
+)}
+
+
+                    {/* Logo */}
+                    {logo.show && (
+                      <img
+                        src="logo.png"
+                        alt="Logo"
+                        style={{
+                          position: "absolute",
+                          width: 120,
+                          height: 60,
+                          ...(logo.position === "top-left" ? { left: 30, top: 150 } : {}),
+                          ...(logo.position === "top-right" ? { right: 30, top: 150 } : {}),
+						  ...(logo.position === "top-center" ? { right: 500, top: 50 } : {}),
+                          ...(logo.position === "bottom-left" ? { left: 30, bottom: 150 } : {}),
+                          ...(logo.position === "bottom-right" ? { right: 30, bottom: 150 } : {}),
+                          zIndex: 300,
+                        }}
+                      />
+                    )}
+
+                    {/* Multiple Headlines */}
+                    {headlines.map(headline => (
+                      <React.Fragment key={headline.id}>
+                        {headline.sideline.show && (
+                          <div
+                            className="sideline-clone"
+                            style={{
+                              position: "absolute",
+                              left: headline.direction === "ltr" ? headline.sideline.gap : "auto",
+                              right: headline.direction === "rtl" ? headline.sideline.gap : "auto",
+                              top: headline.textPos.y + (headline.sidelineOffset || 0),
+                              height: headline.sideline.height || 0,
+                              width: headline.sideline.width,
+                              background: headline.sideline.color,
+                              opacity: headline.sideline.opacity,
+                              pointerEvents: "none",
+                              zIndex: 200,
+                            }}
+                          />
+                        )}
+                        <div
+                          ref={el => headlineRefs.current[headline.id] = el}
+                          onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+                          onTouchStart={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+                          dir={headline.direction}
+                          style={{
+                            position: "absolute",
+                           left: headline.direction === "ltr" ? headline.textPos.x : "auto",
+							right: headline.direction === "rtl" ? headline.textPos.x : "auto",	
+                            top: headline.textPos.y,
+                            fontSize: headline.fontSize,
+                            lineHeight: headline.lineHeight,
+                            fontFamily: headline.fontFamily,
+                            color: headline.textColor,
+                            textShadow: headline.shadow.enabled ? `${headline.shadow.offsetX}px ${headline.shadow.offsetY}px ${headline.shadow.blur}px ${headline.shadow.color}` : "none",
+                            WebkitTextStroke: headline.stroke.enabled ? `${headline.stroke.width}px ${headline.stroke.color}` : "none",
+                            whiteSpace: "pre-wrap",
+							width: headline.width ? `${headline.width}px` : "80%",
+							maxWidth: "100%",
+                            textAlign: headline.textAlign,
+                            cursor: canDragHeadlines ? "move" : "default",
+                            zIndex: 200,
+                          }}
+                        >
+                          {headline.text}
+                        </div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<SocialCardGenerator />);
+    </script>
+  </body>
+</html>
