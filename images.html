@@ -267,17 +267,30 @@ imageInput.addEventListener('change', e => {
   const f = e.target.files[0];
   if (f) loadSingleImageFile(f);
 });
+// --- Paste handler (supports both single image and collage mode) ---
 window.addEventListener('paste', e => {
   if (!e.clipboardData) return;
   const items = e.clipboardData.items;
-  for (let i=0;i<items.length;i++){
+  for (let i = 0; i < items.length; i++) {
     const it = items[i];
     if (it.type && it.type.indexOf('image') !== -1) {
       const file = it.getAsFile();
-      if (file) { loadSingleImageFile(file); e.preventDefault(); return; }
+      if (!file) continue;
+
+      // If collage mode is active and a slot is selected, paste into that slot
+      if (mode === 'collage' && activeSlotIndex >= 0) {
+        loadImageToSlot(activeSlotIndex, file);
+      } else if (mode === 'single') {
+        // Otherwise, behave as before for single image mode
+        loadSingleImageFile(file);
+      }
+
+      e.preventDefault();
+      return;
     }
   }
 });
+
 function loadSingleImageFile(file) {
   const reader = new FileReader();
   reader.onload = ev => {
