@@ -104,14 +104,14 @@
     "headlines": [
       {
         "id": 1758252239236,
-        "text": "یہ ایک خاص زمرے کیلئے ہیڈلائن ہے جو کافی طویل بھی ہوسکتی ہے ",
+        "text": "یہ معمول کی ہیڈلائن ہے جو زمرے کے ساتھ شائع کی جائے گی",
         "fontSize": 90,
         "lineHeight": 1.2,
         "fontFamily": "JameelNooriNastaliq",
         "textColor": "#ffffff",
         "textPos": {
           "x": 148.46728515625,
-          "y": 763.053741455078
+          "y": 737.053741455078
         },
         "direction": "ltr",
         "textAlign": "center",
