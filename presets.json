@@ -112,24 +112,7 @@
         "width": 800
       }
     ],
-    "images": [
-      {
-        "id": 1760592969400,
-        "src": "blob:https://marifanjum.github.io/18481d89-c1d3-4da4-a629-4b2d1315a81b",
-        "x": -269.15625,
-        "y": 0,
-        "scale": 1.6875,
-        "zIndex": 0,
-        "borderEnabled": false,
-        "stretchEnabled": false,
-        "fitMode": {
-          "top": true,
-          "right": true,
-          "bottom": true,
-          "left": true
-        }
-      }
-    ],
+    "images": [],
     "width": 1080,
     "height": 1080,
     "logo": {
@@ -422,4 +405,5 @@
     "draggableHeadlines": false
   }
 }
+
 
