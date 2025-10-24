@@ -221,7 +221,9 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
           sidelineOffset: 0,
           shadow: { enabled: true, offsetX: 2, offsetY: 2, blur: 6, color: "rgba(0,0,0,0.6)" },
           stroke: { enabled: false, width: 1, color: "#000000" },
-          sideline: { show: true, width: 30, gap: 60, height: 0, color: "#ff0000", opacity: 1 },
+          // when creating or adding initial headlines
+			sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, color: "#ff0000", opacity: 1 },
+		  sidelineOffset: 0,
           isCollapsed: false,
 		  width: 800,
         }]);
@@ -243,7 +245,9 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
             sidelineOffset: 0,
             shadow: { enabled: true, offsetX: 2, offsetY: 2, blur: 6, color: "rgba(0,0,0,0.6)" },
             stroke: { enabled: false, width: 1, color: "#000000" },
-            sideline: { show: true, width: 30, gap: 60, height: 0, color: "#ff0000", opacity: 1 },
+            // when creating or adding initial headlines
+sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, color: "#ff0000", opacity: 1 },
+			 sidelineOffset: 0,
             isCollapsed: false,
 			width: 800,
           };
@@ -316,19 +320,26 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
         }, []);
 
         useEffect(() => {
-          headlines.forEach(h => {
-            const el = headlineRefs.current[h.id];
-            if (!el) return;
+  headlines.forEach(h => {
+    const el = headlineRefs.current[h.id];
+    if (!el) return;
 
-            const newHeight = el.offsetHeight;
+    const measured = el.offsetHeight;
 
-            if ((h.sideline?.height || 0) !== newHeight) {
-              updateHeadline(h.id, {
-                sideline: { ...h.sideline, height: newHeight }
-              });
-            }
-          });
-        }, [headlines, updateHeadline]);
+    // only auto-set if autosizing is enabled (autoHeight true or undefined)
+    const wantsAuto = h.sideline?.autoHeight !== false; // treat undefined as true
+
+    if (wantsAuto) {
+      // Write measured height only when different (and only if measured is a valid number)
+      if (typeof measured === "number" && h.sideline?.height !== measured) {
+        updateHeadline(h.id, {
+          sideline: { ...h.sideline, height: measured, autoHeight: true }
+        });
+      }
+    }
+  });
+  // note: intentionally not including updateHeadline in deps list because it's stable in your code.
+}, [headlines]);
 
         function onImageUpload(e) {
           const files = e.target.files;
@@ -470,29 +481,36 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
 
           setActiveImageId(null);
 
-          setTimeout(() => {
-            const verticalOffset = 3;
-            html2canvas(containerRef.current, {
-              useCORS: true,
-              scale: 1,
-              onclone: (clonedDoc) => {
-                const clonedLines = clonedDoc.querySelectorAll(".sideline-clone");
-                clonedLines.forEach(clonedLine => {
-                  const currentTop = parseFloat(clonedLine.style.top || "0");
-                  clonedLine.style.top = currentTop + verticalOffset + "px";
-                });
-              }
-            })
-              .then((canvas) => {
-                const link = document.createElement("a");
-                link.download = (fileName && fileName.trim() ? fileName.trim() : "social-card") + ".png";
-                link.href = canvas.toDataURL("image/png");
-                link.click();
-              })
-              .catch(err => {
-                console.log("export failed:", err);
-              });
-          }, 0);
+          
+          
+         setTimeout(() => {
+  const textOffset = -45; // adjust between -4 to -7 for perfect match
+  html2canvas(containerRef.current, {
+    useCORS: true,
+    scale: 1,
+    scrollY: -window.scrollY,
+    onclone: (clonedDoc) => {
+      // Apply offset only to the text, not sidelines
+      const textElements = clonedDoc.querySelectorAll('[data-headline="true"]');
+      textElements.forEach(el => {
+        // Move text slightly upward
+        const currentTop = parseFloat(el.style.top || "0");
+        el.style.top = (currentTop + textOffset) + "px";
+      });
+    }
+  })
+    .then((canvas) => {
+      const link = document.createElement("a");
+      link.download =
+        (fileName && fileName.trim() ? fileName.trim() : "social-card") + ".png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    })
+    .catch((err) => {
+      console.log("export failed:", err);
+    });
+}, 0);
+
         }
 
         function updateImage(id, updatedProps) {
@@ -640,7 +658,7 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
     e.preventDefault();
     const password = e.target.elements.password.value;
     // ⚠️ Replace "YOUR_PASSWORD" with your actual password
-    if (password === "ummat123") {
+    if (password === "sabah123") {
       setIsAuthenticated(true);
     } else {
       alert("Incorrect password.");
@@ -870,7 +888,32 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
                             {headline.sideline.show && <>
                               <label className="block text-sm">Width<input type="number" value={headline.sideline.width} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, width: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
                               <label className="block text-sm">Gap<input type="number" value={headline.sideline.gap} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, gap: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
-                              <label className="block text-sm">Height<input type="number" value={headline.sideline.height} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, height: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                              <label className="block text-sm">Height<input type="number" value={headline.sideline.height ?? ""}
+    onChange={e => {
+      const raw = e.target.value;
+      if (raw === "") {
+        // user cleared the field — keep height null but DO NOT enable autosize here.
+        updateHeadline(headline.id, {
+          sideline: { ...headline.sideline, height: null, autoHeight: true }
+        });
+        return;
+      }
+      const parsed = parseInt(raw, 10);
+      const final = Number.isNaN(parsed) ? null : parsed;
+      // When user provides a concrete height, disable autoHeight so autosizer stops overwriting it.
+      updateHeadline(headline.id, {
+        sideline: { ...headline.sideline, height: final, autoHeight: false }
+      });
+    }}
+    onBlur={e => {
+      // optional: if empty after blur, set a default automatic behavior
+      if (e.target.value === "") {
+        updateHeadline(headline.id, {
+          sideline: { ...headline.sideline, height: null, autoHeight: true }
+        });
+      }
+    }}
+    className="w-full border p-1 rounded" /></label>
                               <label className="block text-sm">Color<input type="color" value={headline.sideline.color} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, color: e.target.value } })} className="w-full border p-1 rounded" /></label>
                               <label className="block text-sm">Transparency<input type="range" min="0" max="1" step="0.05" value={headline.sideline.opacity} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, opacity: parseFloat(e.target.value) } })} className="w-full" /></label>
                               <label className="block text-sm">Vertical offset<input type="number" value={headline.sidelineOffset} onChange={e => updateHeadline(headline.id, { sidelineOffset: parseInt(e.target.value) })} className="w-full border p-1 rounded mt-1" /></label>
@@ -1325,14 +1368,16 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
                             }}
                           />
                         )}
+                       
                         <div
-                          ref={el => headlineRefs.current[headline.id] = el}
-                          onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
-                          onTouchStart={canDragHeadlines ? e => startDragText(e, headline.id) : null}
-                          dir={headline.direction}
-                          style={{
-                            position: "absolute",
-                           left: headline.direction === "ltr" ? headline.textPos.x : "auto",
+						  data-headline="true"
+						  ref={el => headlineRefs.current[headline.id] = el}
+						  onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+						  onTouchStart={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+						  dir={headline.direction}
+						  style={{
+							position: "absolute",
+												   left: headline.direction === "ltr" ? headline.textPos.x : "auto",
 							right: headline.direction === "rtl" ? headline.textPos.x : "auto",	
                             top: headline.textPos.y,
                             fontSize: headline.fontSize,
