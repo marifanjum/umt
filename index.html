@@ -1,28 +1,31 @@
 <!DOCTYPE html>
 <html lang="ur" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>یومّیت نیوز</title>
   <style>
     body {
       direction: rtl;
       font-family: 'Noto Nastaliq Urdu', serif;
-      background-color: #f8f8f8;
+      background: #f8f8f8;
       color: #222;
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
       padding: 1rem;
     }
-    .post { background: #fff; padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem; }
-    .featured img { max-width: 100%; height: auto; margin-bottom: 0.5rem; border-radius: 0.5rem; }
+    h1, h2 { text-align: center; }
+    .post { background: #fff; padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .featured img { width: 100%; border-radius: 0.5rem; margin-bottom: 0.5rem; }
+    .small-post img { float: right; margin-left: 1rem; width: 150px; border-radius: 0.5rem; }
     .grid { display: flex; flex-wrap: wrap; gap: 1rem; }
     .grid .post { flex: 1 1 calc(50% - 1rem); }
-    img { max-width: 100%; border-radius: 0.5rem; }
   </style>
 </head>
 <body>
-  <h1 style="text-align:center;">نیوز</h1>
+
+  <h1> نیوز</h1>
+
   <div id="top-stories"></div>
   <h2>خصوصی رپورٹس</h2>
   <div id="exclusive-section" class="grid"></div>
@@ -32,72 +35,67 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
-  <!-- Your app code -->
   <script type="text/babel">
+    const { useState, useEffect } = React;
 
-  const { useState, useEffect } = React;
+    function App() {
+      const [topStories, setTopStories] = useState([]);
+      const [exclusive, setExclusive] = useState([]);
 
-  function TopStories() {
-    const [posts, setPosts] = useState([]);
+      useEffect(() => {
+        fetch("https://ummat.net/wp-json/cso/v1/sections/top-stories?limit=10")
+          .then(res => res.json())
+          .then(data => setTopStories(data))
+          .catch(err => console.error(err));
 
-    useEffect(() => {
-      fetch("https://ummat.net/wp-json/cso/v1/sections/top-stories?limit=10")
-        .then(res => res.json())
-        .then(data => setPosts(data))
-        .catch(err => console.error(err));
-    }, []);
+        fetch("https://ummat.net/wp-json/cso/v1/sections/exclusive?limit=10")
+          .then(res => res.json())
+          .then(data => setExclusive(data))
+          .catch(err => console.error(err));
+      }, []);
 
-    if (!posts.length) return <p>...لوڈ ہو رہا ہے</p>;
+      return (
+        <div>
+          {/* Top Stories */}
+          {topStories.length === 0 ? <p>...لوڈ ہو رہا ہے</p> : (
+            <div>
+              {/* First featured post */}
+              <div className="post featured">
+                <h3>{topStories[0].title}</h3>
+                {topStories[0].image && <img src={topStories[0].image} alt={topStories[0].title} />}
+                <p>{topStories[0].excerpt}</p>
+              </div>
 
-    const [firstPost, ...rest] = posts;
+              {/* Remaining top stories */}
+              {topStories.slice(1).map((post, i) => (
+                <div key={i} className="post small-post">
+                  <h4>{post.title}</h4>
+                  {post.image && <img src={post.image} alt={post.title} />}
+                  <p>{post.excerpt}</p>
+                  <div style={{clear:'both'}}></div>
+                </div>
+              ))}
+            </div>
+          )}
 
-    return (
-      <div>
-        <div className="post featured">
-          <h3>{firstPost.title}</h3>
-          {firstPost.image && <img src={firstPost.image} alt={firstPost.title} />}
-          <p>{firstPost.excerpt}</p>
+          {/* Exclusive Section */}
+          {exclusive.length === 0 ? <p>...لوڈ ہو رہا ہے</p> : (
+            <div className="grid">
+              {exclusive.map((post, i) => (
+                <div key={i} className="post">
+                  {post.image && <img src={post.image} alt={post.title} />}
+                  <h4>{post.title}</h4>
+                  <p>{post.excerpt}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        {rest.map((post, i) => (
-          <div key={i} className="post">
-            <h4>{post.title}</h4>
-            {post.image && <img src={post.image} alt={post.title} style={{float: 'right', marginLeft: '1rem', maxWidth:'150px'}} />}
-            <p>{post.excerpt}</p>
-            <div style={{clear:'both'}}></div>
-          </div>
-        ))}
-      </div>
-    );
-  }
+      );
+    }
 
-  function ExclusiveSection() {
-    const [posts, setPosts] = useState([]);
-
-    useEffect(() => {
-      fetch("https://ummat.net/wp-json/cso/v1/sections/exclusive?limit=10")
-        .then(res => res.json())
-        .then(data => setPosts(data))
-        .catch(err => console.error(err));
-    }, []);
-
-    if (!posts.length) return <p>...لوڈ ہو رہا ہے</p>;
-
-    return (
-      <div className="grid">
-        {posts.map((post, i) => (
-          <div key={i} className="post">
-            {post.image && <img src={post.image} alt={post.title} />}
-            <h4>{post.title}</h4>
-            <p>{post.excerpt}</p>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  ReactDOM.createRoot(document.getElementById("top-stories")).render(<TopStories />);
-  ReactDOM.createRoot(document.getElementById("exclusive-section")).render(<ExclusiveSection />);
-
+    ReactDOM.createRoot(document.body).render(<App />);
   </script>
+
 </body>
 </html>
