@@ -4,157 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Social Card Generator</title>
-    <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
+    
+        <link href="https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2&family=Gulzar&family=Montserrat&family=Noto+Sans+Arabic:wght@100..900&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
       
+
   </head>
   <body class="bg-gray-100">
     <div id="root"></div>
 
     <script type="text/babel">
-        // Helper function to split text into parts (words and spaces)
-        function textToParts(text, defaultColor) {
-            if (!text || typeof text !== 'string') return [];
-            
-            // This regex captures either non-whitespace characters (words) or whitespace (spaces)
-            return text.match(/(\S+|\s+)/g) || []
-                .map((content, index) => ({
-                    id: Date.now() + index, // unique ID for keying/tracking
-                    content: content,
-                    color: defaultColor,
-                }));
-        }
-
-        // Helper function to convert parts back to a plain string
-        function partsToText(parts) {
-            return parts.map(p => p.content).join('');
-        }
-
-        // --- Editable Headline Component ---
-        function EditableHeadline({ headline, updateHeadline, headlineRefs, activeColor, onColorApply }) {
-            const elRef = React.useRef(null);
-            
-            // Effect to maintain the cursor position/selection after update (complex feature, kept simple here)
-            React.useLayoutEffect(() => {
-                if (elRef.current && headlineRefs) {
-                    headlineRefs.current[headline.id] = elRef.current;
-                }
-            }, [headline, headlineRefs]);
-
-            // Handler for content changes (updates the text part of the state)
-            const handleInput = (e) => {
-                const newText = e.target.innerText;
-                const currentDefaultColor = headline.parts?.[0]?.color || headline.textColor;
-                
-                // When text is edited, we re-parse it, preserving the default color.
-                // NOTE: This intentionally loses multi-color styling upon full text edit/retype.
-                const newParts = textToParts(newText, currentDefaultColor);
-
-                updateHeadline(headline.id, {
-                    // Update parts structure
-                    parts: newParts.map(p => ({ ...p, color: headline.textColor || '#ffffff' })), 
-                });
-            };
-
-            // Handler to apply the currently selected color to the selection
-            const handleApplyColor = () => {
-                const selection = window.getSelection();
-                if (!selection || selection.rangeCount === 0 || !activeColor) return;
-
-                const range = selection.getRangeAt(0);
-                const container = elRef.current;
-
-                if (!container.contains(range.commonAncestorContainer)) return;
-
-                // Simple implementation: identify the words within the selection and apply color.
-                const newParts = [...headline.parts];
-                
-                newParts.forEach((part, index) => {
-                    if (part.content.trim() === '') return; // Skip spaces
-
-                    // Create a temporary range for the part's content node
-                    const partNode = container.childNodes[index]; 
-                    if (!partNode || partNode.nodeType !== Node.ELEMENT_NODE) return;
-
-                    const wordContentNode = partNode.firstChild;
-                    if (!wordContentNode || wordContentNode.nodeType !== Node.TEXT_NODE) return;
-
-                    const partRange = document.createRange();
-                    partRange.selectNodeContents(wordContentNode);
-
-                    // Check if the current word's range intersects with the user's selection range
-                    if (range.intersectsNode(wordContentNode)) {
-                        newParts[index] = { ...part, color: activeColor };
-                    }
-                });
-
-                updateHeadline(headline.id, { parts: newParts });
-                onColorApply(); // Clear active color after application
-            };
-
-            const headlineStyle = {
-                position: "absolute",
-                left: headline.direction === "ltr" ? headline.textPos.x : "auto",
-                right: headline.direction === "rtl" ? headline.textPos.x : "auto", 
-                top: headline.textPos.y,
-                fontSize: headline.fontSize,
-                lineHeight: headline.lineHeight,
-                fontFamily: headline.fontFamily,
-                textShadow: headline.shadow.enabled ? `${headline.shadow.offsetX}px ${headline.shadow.offsetY}px ${headline.shadow.blur}px ${headline.shadow.color}` : "none",
-                WebkitTextStroke: headline.stroke.enabled ? `${headline.stroke.width}px ${headline.stroke.color}` : "none",
-                whiteSpace: "pre-wrap",
-                width: headline.width ? `${headline.width}px` : "80%",
-                maxWidth: "100%",
-                textAlign: headline.textAlign,
-                cursor: 'move', // Cursor remains 'move' for the outer container
-                zIndex: 200,
-            };
-
-            return (
-                <div 
-                    ref={elRef}
-                    data-headline="true"
-                    onMouseDown={e => {
-                        // Only allow dragging if the user clicks *outside* the editable content, 
-                        // or if they initiate a drag rather than a selection
-                        if (e.target === elRef.current || e.target.nodeName === 'SPAN') {
-                             if (headline.draggableHeadlines) {
-                                e.stopPropagation();
-                                headline.startDragText(e, headline.id);
-                            }
-                        }
-                    }}
-                    onMouseUp={handleApplyColor} // Try to apply color on mouse up
-                    onTouchEnd={handleApplyColor} // Try to apply color on touch end
-                    dir={headline.direction}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    onInput={handleInput}
-                    style={headlineStyle}
-                >
-                    {headline.parts.map((part, index) => (
-                        <span key={part.id} style={{ color: part.color }}>
-                            {part.content}
-                        </span>
-                    ))}
-                </div>
-            );
-        }
-        // --- End Editable Headline Component ---
-        
       function SocialCardGenerator() {
         const { useState, useRef, useEffect } = React;
         const containerRef = useRef(null);
      
-        // --- NEW STATE for Word Coloring ---
-        const [activeWordColor, setActiveWordColor] = useState('#ff0000');
-        // -----------------------------------
-        
           const [isAuthenticated, setIsAuthenticated] = useState(() => {
   try {
     const savedAuth = localStorage.getItem('socialCardAuth');
@@ -200,13 +69,7 @@
             return;
           }
 
-            // PRESET LOADING LOGIC UPDATED FOR NEW DATA STRUCTURE
-          setHeadlines(preset.headlines.map(h => ({
-                ...h,
-                // If the preset has the old 'text' property, convert it. Otherwise, use 'parts'.
-                parts: h.parts || textToParts(h.text, h.textColor || '#ffffff'),
-                text: undefined, // Remove old property
-            })) || []);
+          setHeadlines(preset.headlines || []);
           setImages(preset.images.map(img => ({
               ...img,
               scale: img.scale !== undefined ? img.scale : 1,
@@ -241,11 +104,7 @@
           }
 
           const newPreset = {
-            // Save headlines using the new 'parts' structure
-            headlines: headlines.map(h => ({
-                ...h,
-                text: partsToText(h.parts), // Keep 'text' string for backward compatibility
-            })), 
+            headlines, 
             images: images.map(img => ({
                 id: img.id,
                 src: img.src,
@@ -297,15 +156,7 @@
         }
 
         function exportPresets() {
-            // Ensure export uses the latest structure
-          const exportablePresets = JSON.parse(JSON.stringify(presets));
-            Object.keys(exportablePresets).forEach(key => {
-                exportablePresets[key].headlines = exportablePresets[key].headlines.map(h => ({
-                    ...h,
-                    text: h.text || partsToText(h.parts),
-                }));
-            });
-          const json = JSON.stringify(exportablePresets, null, 2);
+          const json = JSON.stringify(presets, null, 2);
           navigator.clipboard.writeText(json)
             .then(() => alert("All presets copied to clipboard!"))
             .catch(err => console.error("Clipboard copy failed", err));
@@ -317,17 +168,6 @@
           try {
             const parsed = JSON.parse(json);
             if (typeof parsed !== "object") throw new Error("Invalid format");
-
-                // Ensure imported headlines get the new 'parts' structure
-                Object.keys(parsed).forEach(key => {
-                    if (parsed[key].headlines) {
-                        parsed[key].headlines = parsed[key].headlines.map(h => ({
-                            ...h,
-                            parts: h.parts || textToParts(h.text, h.textColor || '#ffffff'),
-                            text: undefined,
-                        }));
-                    }
-                });
 
             const updatedPresets = { ...DEFAULT_PRESETS, ...parsed };
             setPresets(updatedPresets);
@@ -359,17 +199,13 @@
           imageSrc: 'bg.png'
         });
           
-        const DEFAULT_HEADLINE_TEXT = "Headline here";
-        const DEFAULT_HEADLINE_COLOR = "#ffffff";
-
         const [headlines, setHeadlines] = useState([{
           id: Date.now(),
-          parts: textToParts(DEFAULT_HEADLINE_TEXT, DEFAULT_HEADLINE_COLOR), // New data structure
-            text: DEFAULT_HEADLINE_TEXT, // Keep a temporary text version for controls/compatibility
+          text: "Headline here",
           fontSize: 90,
           lineHeight: 1.2,
           fontFamily: "JameelNooriNastaliq",
-          textColor: DEFAULT_HEADLINE_COLOR,
+          textColor: "#ffffff",
           textPos: { x: 100, y: 200 },
           direction: "rtl",
           textAlign: "right",
@@ -387,15 +223,13 @@
         const [draggableHeadlines, setDraggableHeadlines] = useState(true);
 
         function addHeadline() {
-            const defaultTextColor = "#ffffff";
           const newHeadline = {
             id: Date.now(),
-            parts: textToParts("New Headline", defaultTextColor), // Use new parts structure
-            text: "New Headline", // Temp string for controls/compatibility
+            text: "New Headline",
             fontSize: 60,
             lineHeight: 1.2,
             fontFamily: "JameelNooriNastaliq",
-            textColor: defaultTextColor,
+            textColor: "#ffffff",
             textPos: { x: 100, y: 300 },
             direction: "rtl",
             textAlign: "right",
@@ -412,29 +246,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
         }
 
         function updateHeadline(id, updatedProps) {
-            // Special handling: if `text` is updated (from textarea/load), re-parse it into `parts`.
-            if (updatedProps.text !== undefined) {
-                const existingHeadline = headlines.find(h => h.id === id);
-                const defaultColor = existingHeadline ? existingHeadline.textColor : '#ffffff';
-                
-                updatedProps.parts = textToParts(updatedProps.text, defaultColor);
-                
-                // When updating text via the main text area, reset individual word colors to the main text color.
-                updatedProps.parts = updatedProps.parts.map(p => ({
-                    ...p,
-                    color: updatedProps.textColor || defaultColor
-                }));
-            }
-            
-          setHeadlines(current => current.map(h => {
-                if (h.id === id) {
-                    // Update text property from parts if it was a direct parts update (like color change)
-                    const updatedH = { ...h, ...updatedProps };
-                    updatedH.text = partsToText(updatedH.parts || h.parts);
-                    return updatedH;
-                }
-                return h;
-            }));
+          setHeadlines(current => current.map(h => h.id === id ? { ...h, ...updatedProps } : h));
         }
 
         function deleteHeadline(id) {
@@ -453,17 +265,12 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
 }, [isAuthenticated]);
           
 
-        // Update useEffect to handle the new 'parts' structure from localStorage
         useEffect(() => {
           try {
             const savedData = localStorage.getItem('socialCardData');
             if (savedData) {
               const parsedData = JSON.parse(savedData);
-              if (parsedData.headlines) setHeadlines(parsedData.headlines.map(h => ({
-                    ...h,
-                    // Convert old 'text' or new 'text' string on load if 'parts' is missing
-                    parts: h.parts || textToParts(h.text || h.partsToText(h.parts), h.textColor || '#ffffff'),
-                })));
+              if (parsedData.headlines) setHeadlines(parsedData.headlines);
               if (parsedData.images) setImages(parsedData.images.map(img => ({
                 ...img,
                 fitMode: img.fitMode || { top: false, right: false, bottom: false, left: false },
@@ -480,15 +287,9 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
           }
         }, []);
 
-        // Update useEffect to save the correct structure (parts) to localStorage
         useEffect(() => {
           const dataToSave = {
-                // Ensure headlines stored have the simplified structure for saving
-                headlines: headlines.map(h => ({
-                    ...h,
-                    text: partsToText(h.parts), // save text for backward compatibility
-                })),
-                images, width, height, logo, fileName, background
+            headlines, images, width, height, logo, fileName, background
           };
           try {
             localStorage.setItem('socialCardData', JSON.stringify(dataToSave));
@@ -1016,75 +817,39 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                     />
                     <label htmlFor="dragToggle" className="text-sm font-medium">Enable drag for headlines</label>
                   </div>
-                    {/* Word Color Picker for selected text */}
-                    <div className="mt-4 p-2 border rounded-md border-purple-300 bg-purple-50">
-                        <label className="block text-sm font-bold text-purple-800">Word Color Picker</label>
-                        <p className="text-xs text-purple-600 mb-2">1. Select text in the preview. 2. Choose color. 3. Click 'Apply'.</p>
-                        <div className="flex gap-2 items-center">
-                            <input
-                                type="text"
-                                value={activeWordColor.toUpperCase()}
-                                onChange={e => setActiveWordColor(e.target.value)}
-                                className="w-16 border p-1 rounded font-mono text-xs"
-                                placeholder="#RRGGBB"
-                            />
-                            <input
-                                type="color"
-                                value={activeWordColor}
-                                onChange={e => setActiveWordColor(e.target.value)}
-                                className="w-10 h-8 p-0 border rounded"
-                            />
-                            <button 
-                                onClick={() => setActiveWordColor('#ff0000')} 
-                                className="bg-gray-300 text-xs px-2 py-1 rounded"
-                            >Reset</button>
-                        </div>
-                    </div>
-                    {/* End Word Color Picker */}
                   {headlines.map(headline => (
                     <div key={headline.id} className="border-b last:border-b-0 py-2">
                       <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedHeadlineId(expandedHeadlineId === headline.id ? null : headline.id)}>
-                        <span className="font-semibold">{partsToText(headline.parts).substring(0, 20)}...</span>
+                        <span className="font-semibold">{headline.text.substring(0, 20)}...</span>
                         <span>{expandedHeadlineId === headline.id ? '▲' : '▼'}</span>
                       </div>
                       {expandedHeadlineId === headline.id && (
                         <div className="mt-2 space-y-2">
                           <label className="block text-sm font-medium">Text</label>
-                            {/* Pass partsToText(headline.parts) to textarea to handle display of combined text */}
-                          <textarea dir={headline.direction} value={partsToText(headline.parts)} onChange={e => updateHeadline(headline.id, { text: e.target.value })} className="w-full border p-2 rounded" />
+                          <textarea dir={headline.direction} value={headline.text} onChange={e => updateHeadline(headline.id, { text: e.target.value })} className="w-full border p-2 rounded" />
                           <label className="block text-sm mt-2">Font size</label>
                           <input type="number" value={headline.fontSize} onChange={e => updateHeadline(headline.id, { fontSize: parseInt(e.target.value) })} className="w-full border p-1 rounded" />
                           <label className="block text-sm mt-2">Line height</label>
                           <input type="number" step="0.1" value={headline.lineHeight} onChange={e => updateHeadline(headline.id, { lineHeight: parseFloat(e.target.value) })} className="w-full border p-1 rounded" />
                             
-                            {/* Main Text Color (resets individual word colors) */}
-                          <label className="block text-sm mt-2">Default Text color (Hex/Picker)</label>
-                            <div className="flex gap-2">
+                            {/* 1. Headline Text Color */}
+                          <label className="block text-sm mt-2">Text color (Hex/Picker)</label>
+                            <div className="flex gap-2 items-center">
                                 <input
                                     type="text"
                                     value={headline.textColor.toUpperCase()}
-                                    onChange={e => {
-                                        // Update the base color and apply it to ALL parts
-                                        updateHeadline(headline.id, { 
-                                            textColor: e.target.value,
-                                            parts: headline.parts.map(p => ({ ...p, color: e.target.value }))
-                                        });
-                                    }}
+                                    onChange={e => updateHeadline(headline.id, { textColor: e.target.value })}
                                     className="w-full border p-1 rounded font-mono text-xs"
                                     placeholder="#RRGGBB"
                                 />
                                 <input
                                     type="color"
                                     value={headline.textColor}
-                                    onChange={e => {
-                                        // Update the base color and apply it to ALL parts
-                                        updateHeadline(headline.id, { 
-                                            textColor: e.target.value,
-                                            parts: headline.parts.map(p => ({ ...p, color: e.target.value }))
-                                        });
-                                    }}
+                                    onChange={e => updateHeadline(headline.id, { textColor: e.target.value })}
+                                    className="w-10 h-8 p-0 border rounded"
                                 />
                             </div>
+                            
                           <label className="block text-sm mt-3">Font family</label>
                           <select value={headline.fontFamily} onChange={e => updateHeadline(headline.id, { fontFamily: e.target.value })} className="w-full border p-1 rounded mt-2">
                             <option value="Jameel Noori Nastaleeq">Jameel Noori Nastaleeq</option>
@@ -1130,6 +895,8 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                               <label className="text-sm">OffsetX<input type="number" value={headline.shadow.offsetX} onChange={e => updateHeadline(headline.id, { shadow: { ...headline.shadow, offsetX: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
                               <label className="text-sm">OffsetY<input type="number" value={headline.shadow.offsetY} onChange={e => updateHeadline(headline.id, { shadow: { ...headline.shadow, offsetY: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
                               <label className="text-sm">Blur<input type="number" value={headline.shadow.blur} onChange={e => updateHeadline(headline.id, { shadow: { ...headline.shadow, blur: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                                
+                                {/* 2. Headline Shadow Color */}
                                 <label className="text-sm">Color</label>
                                 <div className="flex gap-1 items-center">
                                     <input
@@ -1157,6 +924,8 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                             </label>
                             {headline.stroke.enabled && <div className="mt-2 grid grid-cols-2 gap-2">
                               <label className="text-sm">Width<input type="number" value={headline.stroke.width} onChange={e => updateHeadline(headline.id, { stroke: { ...headline.stroke, width: parseInt(e.target.value) } })} className="w-full border p-1 rounded" /></label>
+                                
+                                {/* 3. Headline Stroke Color */}
                                 <label className="text-sm">Color</label>
                                 <div className="flex gap-1 items-center">
                                     <input
@@ -1211,6 +980,8 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
       }
     }}
     className="w-full border p-1 rounded" /></label>
+                                
+                                {/* 4. Headline Sideline Color */}
                                 <label className="block text-sm">Color</label>
                                 <div className="flex gap-1 items-center">
                                     <input
@@ -1304,6 +1075,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                           </div>
                         ))}
 
+                        {/* 5. Global Border Color */}
                         <div className="flex items-center gap-2 mb-4">
                             <label className="text-sm whitespace-nowrap">Border color (Hex):</label>
                             <input
@@ -1344,6 +1116,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                                       ? { ...img, borderEnabled: e.target.checked }
                                       : img
                                   )
+                                )
                               }
                             />
                           </div>
@@ -1666,7 +1439,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                       />
                     )}
 
-                    {/* Multiple Headlines (using new EditableHeadline component) */}
+                    {/* Multiple Headlines */}
                     {headlines.map(headline => (
                       <React.Fragment key={headline.id}>
                         {headline.sideline.show && (
@@ -1686,20 +1459,41 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                             }}
                           />
                         )}
-                        
-                        <EditableHeadline
-                            headline={{ ...headline, draggableHeadlines, startDragText }}
-                            updateHeadline={updateHeadline}
-                            headlineRefs={headlineRefs}
-                            activeColor={activeWordColor}
-                            onColorApply={() => setActiveWordColor('#ff0000')}
-                        />
+                       
+                        <div
+                          data-headline="true"
+                          ref={el => headlineRefs.current[headline.id] = el}
+                          onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+                          onTouchStart={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+                          dir={headline.direction}
+                          style={{
+                            position: "absolute",
+                                                   left: headline.direction === "ltr" ? headline.textPos.x : "auto",
+                            right: headline.direction === "rtl" ? headline.textPos.x : "auto",    
+                            top: headline.textPos.y,
+                            fontSize: headline.fontSize,
+                            lineHeight: headline.lineHeight,
+                            fontFamily: headline.fontFamily,
+                            color: headline.textColor,
+                            textShadow: headline.shadow.enabled ? `${headline.shadow.offsetX}px ${headline.shadow.offsetY}px ${headline.shadow.blur}px ${headline.shadow.color}` : "none",
+                            WebkitTextStroke: headline.stroke.enabled ? `${headline.stroke.width}px ${headline.stroke.color}` : "none",
+                            whiteSpace: "pre-wrap",
+                            width: headline.width ? `${headline.width}px` : "80%",
+                            maxWidth: "100%",
+                            textAlign: headline.textAlign,
+                            cursor: canDragHeadlines ? "move" : "default",
+                            zIndex: 200,
+                          }}
+                        >
+                          {headline.text}
+                        </div>
                       </React.Fragment>
                     ))}
                   </div>
                 </div>
               </div>
             </div>
+          </div>
         );
       }
 
