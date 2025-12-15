@@ -1365,7 +1365,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                           />
                         )}
                        
-                        <<div
+                        <div
                           data-headline="true"
                           ref={el => headlineRefs.current[headline.id] = el}
                           onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
