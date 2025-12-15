@@ -7,7 +7,7 @@
 	  <link href="
 https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
 " rel="stylesheet">
-	  <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2&family=Gulzar&family=Montserrat&family=Noto+Sans+Arabic:wght@100..900;wdth@62.5..100&display=swap" rel="stylesheet">
+	 <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2&family=Gulzar&family=Montserrat&family=Noto+Sans+Arabic:wght@100..900;wdth@62.5..100&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -814,16 +814,20 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                           <input type="color" value={headline.textColor} onChange={e => updateHeadline(headline.id, { textColor: e.target.value })} />
                           <label className="block text-sm mt-3">Font family</label>
                           <select value={headline.fontFamily} onChange={e => updateHeadline(headline.id, { fontFamily: e.target.value })} className="w-full border p-1 rounded mt-2">
-                            <option value="Jameel Noori Nastaleeq">Jameel Noori Nastaleeq</option>
+                           <select value={headline.fontFamily} onChange={e => updateHeadline(headline.id, { fontFamily: e.target.value })} className="w-full border p-1 rounded mt-2">
+                            <option value="Jameel Noori Nastaleeq">Jameel Noori Nastaleeq</option>
                             <option value="JameelNooriNastaliq">Jameel Noori embed</option>
-                            <option value="Noto Sans Arabic">Noto Sans Arabic</option>
-							<option value="Noto Sans Arabic Thin">Noto Sans Arabic (Thin)</option>
-							<option value="Noto Sans Arabic Condensed">Noto Sans Arabic (Condensed)</option>
-							<option value="Baloo Bhaijaan 2">Baloo Bhaijaan 2</option>
+                            <option value="Noto Sans Arabic">Noto Sans Arabic (Default)</option>
+                            <option value="Noto Sans Arabic Thin">Noto Sans Arabic (Thin)</option>
+                            <option value="Noto Sans Arabic Condensed">Noto Sans Arabic (Condensed)</option>
+                            {/* FIX 1: Ensure consistent font names */}
+                            <option value="Baloo Bhaijaan 2">Baloo Bhaijaan 2</option>
                             <option value="Gulzar">Gulzar</option>
+                            {/* ... rest of the options remain ... */}
                             <option value="Montserrat">Montserrat</option>
                             <option value="Tahoma">Tahoma</option>
                             <option value="Arial">Arial</option>
+                          </select>
                           </select>
                           <label className="block text-sm mt-3">Text direction</label>
                           <select value={headline.direction} onChange={e => updateHeadline(headline.id, { direction: e.target.value })} className="w-full border p-1 rounded mt-2">
@@ -1365,7 +1369,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                           />
                         )}
                        
-                        <div
+                       <div
                           data-headline="true"
                           ref={el => headlineRefs.current[headline.id] = el}
                           onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
@@ -1373,7 +1377,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                           dir={headline.direction}
                           style={{
                             position: "absolute",
-                                                   left: headline.direction === "ltr" ? headline.textPos.x : "auto",
+                            left: headline.direction === "ltr" ? headline.textPos.x : "auto",
                             right: headline.direction === "rtl" ? headline.textPos.x : "auto",    
                             top: headline.textPos.y,
                             fontSize: headline.fontSize,
@@ -1387,25 +1391,30 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                             textAlign: headline.textAlign,
                             cursor: canDragHeadlines ? "move" : "default",
                             zIndex: 200,
+                            
+                            // FIX 2: Set the correct font-family name for all variations
+                            fontFamily: 
+                                (headline.fontFamily.startsWith("Noto Sans Arabic")) 
+                                ? "Noto Sans Arabic" 
+                                : headline.fontFamily,
+                            
+                            // If not a Noto variation, reset these
+                            fontWeight: 'normal',
+                            fontVariationSettings: 'normal',
+                            
+                            // Set weight and width ONLY for the specific Noto variations
+                            ...(headline.fontFamily === "Noto Sans Arabic Thin" && {
+                              fontWeight: 100, // Explicitly set Thin weight
+                            }),
+                            ...(headline.fontFamily === "Noto Sans Arabic Condensed" && {
+                              fontVariationSettings: `'wdth' 62.5`, // FIX 3: Use the max condensed value for visibility
+                            }),
                             
-                            /* 👇 START ADDING CONDITIONAL STYLES 👇 */
-                            fontFamily: 
-                                (headline.fontFamily.startsWith("Noto Sans Arabic")) 
-                                ? "Noto Sans Arabic" 
-                                : headline.fontFamily, // Base font is Noto Sans Arabic
-                            
-                            fontWeight: 
-                                (headline.fontFamily === "Noto Sans Arabic Thin") 
-                                ? 100 // Set weight to Thin
-                                : (headline.fontFamily === "Noto Sans Arabic")
-                                ? 400 // Set weight to Regular/Default
-                                : 'normal', // Let other fonts use their default weight
+                            // Re-apply a default weight for the base Noto Sans Arabic entry (optional, but safer)
+                            ...(headline.fontFamily === "Noto Sans Arabic" && {
+                              fontWeight: 400, // Regular weight
+                            }),
 
-                            fontVariationSettings: 
-                                (headline.fontFamily === "Noto Sans Arabic Condensed") 
-                                ? `'wdth' 75` // Set width axis to a condensed value (~75)
-                                : 'normal', // Reset for all other options
-                            /* 👆 END ADDING CONDITIONAL STYLES 👆 */
                           }}
                         >
                           {headline.text}
