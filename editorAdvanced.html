@@ -819,15 +819,12 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                             <option value="Noto Sans Arabic">Noto Sans Arabic (Default)</option>
                             <option value="Noto Sans Arabic Thin">Noto Sans Arabic (Thin)</option>
                             <option value="Noto Sans Arabic Condensed">Noto Sans Arabic (Condensed)</option>
-                            {/* FIX 1: Ensure consistent font names */}
-                            <option value="Baloo Bhaijaan 2">Baloo Bhaijaan 2</option>
+                           <option value="Baloo Bhaijaan 2">Baloo Bhaijaan 2</option>
                             <option value="Gulzar">Gulzar</option>
-                            {/* ... rest of the options remain ... */}
-                            <option value="Montserrat">Montserrat</option>
+                           <option value="Montserrat">Montserrat</option>
                             <option value="Tahoma">Tahoma</option>
                             <option value="Arial">Arial</option>
-                          </select>
-                          </select>
+                            </select>
                           <label className="block text-sm mt-3">Text direction</label>
                           <select value={headline.direction} onChange={e => updateHeadline(headline.id, { direction: e.target.value })} className="w-full border p-1 rounded mt-2">
                             <option value="ltr">Left to Right</option>
