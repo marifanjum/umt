@@ -813,18 +813,18 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                           <label className="block text-sm mt-2">Text color</label>
                           <input type="color" value={headline.textColor} onChange={e => updateHeadline(headline.id, { textColor: e.target.value })} />
                           <label className="block text-sm mt-3">Font family</label>
-                          <select value={headline.fontFamily} onChange={e => updateHeadline(headline.id, { fontFamily: e.target.value })} className="w-full border p-1 rounded mt-2">
-                            <option value="Jameel Noori Nastaleeq">Jameel Noori Nastaleeq</option>
+                          <select value={headline.fontFamily} onChange={e => updateHeadline(headline.id, { fontFamily: e.target.value })} className="w-full border p-1 rounded mt-2">
+                            <option value="Jameel Noori Nastaleeq">Jameel Noori Nastaleeq</option>
                             <option value="JameelNooriNastaliq">Jameel Noori embed</option>
                             <option value="Noto Sans Arabic">Noto Sans Arabic (Default)</option>
                             <option value="Noto Sans Arabic Thin">Noto Sans Arabic (Thin)</option>
                             <option value="Noto Sans Arabic Condensed">Noto Sans Arabic (Condensed)</option>
-                           <option value="Baloo Bhaijaan 2">Baloo Bhaijaan 2</option>
+                           <option value="Baloo Bhaijaan 2">Baloo Bhaijaan 2</option>
                             <option value="Gulzar">Gulzar</option>
-                           <option value="Montserrat">Montserrat</option>
+                           <option value="Montserrat">Montserrat</option>
                             <option value="Tahoma">Tahoma</option>
                             <option value="Arial">Arial</option>
-                            </select>
+                          </select>
                           <label className="block text-sm mt-3">Text direction</label>
                           <select value={headline.direction} onChange={e => updateHeadline(headline.id, { direction: e.target.value })} className="w-full border p-1 rounded mt-2">
                             <option value="ltr">Left to Right</option>
@@ -1129,6 +1129,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
 							<option value="top-center">Top Center</option>
                             <option value="bottom-left">Bottom Left</option>
                             <option value="bottom-right">Bottom Right</option>
+							<option value="extreme-bottom-left">Extreme Bottom Left</option>
                           </select>
                         }
                       </div>
@@ -1339,6 +1340,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
 						  ...(logo.position === "top-center" ? { right: 500, top: 50 } : {}),
                           ...(logo.position === "bottom-left" ? { left: 30, bottom: 150 } : {}),
                           ...(logo.position === "bottom-right" ? { right: 30, bottom: 150 } : {}),
+						  ...(logo.position === "extreme-bottom-left" ? { left: 0, bottom: 0 } : {}),
                           zIndex: 300,
                         }}
                       />
