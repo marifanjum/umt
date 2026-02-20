@@ -1189,9 +1189,9 @@ function getPinchDistance(touches) {
 downloadCanvasButton.addEventListener('click', () => {
   let filename = fileNameInput.value.trim() || 'resized';
   const format = downloadFormat.value;
-  const mime = (format === 'jpeg') ? 'image/jpeg' : 'image/webp';
-  const ext = (format === 'jpeg') ? '.jpg' : '.webp';
-  if (!filename.toLowerCase().endsWith(ext)) filename += ext;
+  const mime = (format === 'webp') ? 'image/webp' : 'image/jpeg';
+  const ext = (format === 'webp') ? '.webp' : '.jpg';
+	if (!filename.toLowerCase().endsWith(ext)) filename += ext;
   // Ensure overlay highlight (DOM) is hidden before exporting (it shouldn't be drawn anyway,
   // but we keep it hidden to be safe)
   const prevOverlayDisplay = slotOverlay.style.display;
@@ -1216,6 +1216,7 @@ drawAll();
 </script>
 </body>
 </html>
+
 
 
 
