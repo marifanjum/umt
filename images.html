@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Image Manipulation — Collage Extension (Phase 1)</title>
+<title>Image Manipulation — Collage Extension</title>
 <style>
   body { margin: 8px; font-family: Arial, sans-serif; }
   .controls-row { margin-bottom: 10px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
@@ -25,7 +25,6 @@
   #imageInput { display: none; }
   .slot-load { padding:8px 12px; font-size:14px; background:#eee; border-radius:6px; cursor:pointer; }
   .slot-container { display:inline-flex; gap:8px; align-items:center; }
-  /* Selection overlay for collage slots (DOM overlay, not drawn on canvas) */
   .slot-overlay {
     position: absolute;
     border: 3px dashed #1e90ff;
@@ -39,7 +38,7 @@
 </head>
 <body>
 
-<h2>Image Resize and Collage </h2>
+<h2>Image Resize and Collage</h2>
 
 <div class="controls-row">
   <label><input type="radio" name="mode" value="single" checked> Single Image Mode</label>
@@ -48,183 +47,89 @@
   <span id="singleControls" style="display:inline-flex; gap:12px; align-items:center;">
     <label id="imageInputLabel">📂 Load Image for Edit</label>
     <input type="file" id="imageInput" accept="image/*">
-    <span class="note">You can also paste an image (Ctrl/Cmd+V)</span>
+    <span class="note">Paste supported (Ctrl/Cmd+V)</span>
   </span>
 
   <span id="collageControls" style="display:none; gap:12px; align-items:center;">
     <label>Images:
       <select id="collageCount">
-        <option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option>
+        <option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>8</option>
       </select>
     </label>
 
     <label>Layout:
         <select id="collageLayout" class="small">
-  <optgroup label="Basic Layouts">
-    <option value="row">Row</option>
-    <option value="column">Column</option>
-    <option value="grid-equal">Grid — Equal</option>
-<option value="grid-equal-43">Grid — Equal (4:3 ratio)</option>
-  </optgroup>
-
-  <optgroup label="One Big + small ">
-    <option value="grid-1big">1 Big (Left) + Small Column</option>
-	 <option value="grid-1big-grid">1 Big (Left) + Others Grid (Right)</option>
-	  <option value="grid-1big-grid-left">1 Big (Right) + Others Rows (Left)</option>
-	  <option value="grid-1big-grid-top">1 Big (Top) + Others Rows (Bottom)</option>
-    <option value="grid-1big-grid-bottom">1 Big (Bottom) + Others Grid (Top)</option>
-   
-  </optgroup>
-
-  <optgroup label="Two big + small">
-   <option value="grid-2stack-grid">2 Big Left + Others Grid (Right)</option>
-     <option value="grid-2stack-grid-left">2 Big Right + Others Grid (Left)</option>
-    <option value="grid-2big">2 Big (Top Row) + Small Bottom</option>
-     </optgroup>
-
-      </select>
+          <option value="grid-equal">Equal Grid</option>
+          <option value="row">Row</option>
+          <option value="column">Column</option>
+          <option value="grid-1big">1 Big + Sidebar</option>
+        </select>
     </label>
-
-    <button id="generateCollageSlots">Generate slots</button>
-    <span class="note">Selection highlight won't appear in exported image.</span>
+    <button id="generateCollageSlots">Generate Slots</button>
   </span>
 </div>
 
 <div id="canvasContainer">
   <canvas id="canvas" width="1200" height="720"></canvas>
-  <!-- overlay used to highlight the active slot; it's DOM-only so it will NOT be exported -->
-  <div id="slotOverlay" class="slot-overlay" style="display:none;"></div>
+  <div id="slotOverlay" class="slot-overlay"></div>
 </div>
 
-<!-- Existing controls (kept) -->
 <div class="controls-row">
-  <button id="stretchButton">Fit by Stretch Short Side</button>
-  <button id="fitLongestSideButton">Fit on Longest Side</button>
+  <button id="stretchButton">Fit Short Side</button>
+  <button id="fitLongestSideButton">Fit Longest Side</button>
   <button id="centerButton">Center Image</button>
-  <button id="forceStretchButton">Force Stretch to Fit</button>
-  <button id="fillCanvasButton">Auto Zoom to Fill</button>
+  <button id="fillCanvasButton">Auto Fill</button>
 </div>
 
 <div class="controls-row">
-  <label><input type="checkbox" id="toggleBorder"> Show Double Border</label>
-
-  <label><input type="checkbox" id="toggleBg"> Show Background</label>
+  <label><input type="checkbox" id="toggleBorder"> Double Border</label>
+  <label><input type="checkbox" id="toggleBg"> Background Image</label>
   <input type="file" id="bgImageInput" accept="image/*">
+  <label><input type="checkbox" id="toggleGradient"> Gradient</label>
 </div>
 
 <div class="controls-row">
-  <label><input type="checkbox" id="toggleGradient"> Use Gradient Background</label>
-  <label>Gradient Color Right: <input type="color" id="gradColor2" value="#ffffff"></label>
-  <label>Gradient Color Left: <input type="color" id="gradColor1" value="#000000"></label>
-  <label>Direction:
-    <select id="gradDirection" class="small">
-      <option value="top-bottom">Top → Bottom</option>
-      <option value="bottom-top">Bottom → Top</option>
-      <option value="left-right">Left → Right</option>
-      <option value="right-left">Right → Left</option>
-      <option value="tl-br">Top-Left → Bottom-Right</option>
-      <option value="tr-bl">Top-Right → Bottom-Left</option>
-      <option value="bl-tr">Bottom-Left → Top-Right</option>
-      <option value="br-tl">Bottom-Right → Top-Left</option>
-    </select>
-  </label>
+  <label><input type="checkbox" id="toggleLogo"> Credit Label</label>
+  <input type="text" id="logoTextInput" placeholder="Text Label">
 </div>
 
-<div class="controls-row">
-  <label><input type="checkbox" id="toggleLogo"> Show Image Credit</label>
-  <input type="text" id="logoTextInput" placeholder="Enter text for label" style="width:220px;">
-  <label>Text Position:
-    <select id="logoPosition" class="small">
-      <option value="top-right" selected>Top Right</option>
-      <option value="top-left">Top Left</option>
-      <option value="bottom-right">Bottom Right</option>
-      <option value="bottom-left">Bottom Left</option>
-    </select>
-  </label>
-</div>
-
-<!-- Collage slot loaders will be injected here -->
 <div id="collageSlotLoaders" class="controls-row" style="display:none;"></div>
 
 <div class="controls-row">
-  <label>Filename: <input type="text" id="fileNameInput" placeholder="Enter filename (optional)"></label>
-  <label>Format:
-    <select id="downloadFormat" class="small">
-      <option value="jpeg" selected>JPG</option>
-      <option value="webp">WebP</option>
-    </select>
-  </label>
-  <button id="downloadCanvasButton">Download Resized Image</button>
+  <button id="downloadCanvasButton">Download Final Image</button>
 </div>
 
 <script>
-/* Phase 1 Collage implementation
-   - Adds Collage Mode UI
-   - Creates N slots and layout templates (row, column, equal grid, 1big, 2big)
-   - Loads images into slots (via file inputs)
-   - Draws the collage (images fitted into their slot rectangles)
-   - DOM overlay used to highlight selected slot (not drawn into canvas/export)
-   - Keeps existing single-image mode & controls
-*/
-
-// --- DOM references ---
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-
 const modeRadios = document.getElementsByName('mode');
 const singleControls = document.getElementById('singleControls');
 const collageControls = document.getElementById('collageControls');
-
-const imageInputLabel = document.getElementById('imageInputLabel');
 const imageInput = document.getElementById('imageInput');
 const bgImageInput = document.getElementById('bgImageInput');
-
-const stretchButton = document.getElementById('stretchButton');
-const fitLongestSideButton = document.getElementById('fitLongestSideButton');
-const centerButton = document.getElementById('centerButton');
-const forceStretchButton = document.getElementById('forceStretchButton');
-const fillCanvasButton = document.getElementById('fillCanvasButton');
-
-const toggleBorder = document.getElementById('toggleBorder');
-const toggleBg = document.getElementById('toggleBg');
-const toggleGradient = document.getElementById('toggleGradient');
-const gradColor1 = document.getElementById('gradColor1');
-const gradColor2 = document.getElementById('gradColor2');
-const gradDirection = document.getElementById('gradDirection');
-
-const toggleLogo = document.getElementById('toggleLogo');
-const logoTextInput = document.getElementById('logoTextInput');
-const logoPosition = document.getElementById('logoPosition');
-
 const collageCount = document.getElementById('collageCount');
 const collageLayout = document.getElementById('collageLayout');
-const generateCollageSlots = document.getElementById('generateCollageSlots');
 const collageSlotLoaders = document.getElementById('collageSlotLoaders');
 const slotOverlay = document.getElementById('slotOverlay');
 
-const downloadCanvasButton = document.getElementById('downloadCanvasButton');
-const fileNameInput = document.getElementById('fileNameInput');
-const downloadFormat = document.getElementById('downloadFormat');
-
-// state
-let mode = 'single'; // 'single' or 'collage'
-
-// Single image state (existing)
+// State
+let mode = 'single';
 let image = null;
 let offsetX = 0, offsetY = 0, scale = 1;
 let forceStretchMode = false;
 const MIN_SCALE = 0.05, MAX_SCALE = 20;
+
 let isDragging = false, dragStartX = 0, dragStartY = 0;
 let isPinching = false, initialPinchDistance = 0, lastScale = 1;
 
-// background image
+let collageSlots = [];
+let activeSlotIndex = -1;
+let isDraggingSlot = false;
+let slotDragStart = {x: 0, y: 0};
+let collagePinching = false, collageInitialDist = 0, collageLastScale = 1;
+
 let bgImage = new Image();
 
-// Collage state (Phase 1)
-let collageSlots = []; // array of {img:Image|null, rect:{x,y,w,h}, fileInput, id}
-let activeSlotIndex = -1; // which slot is selected; -1 = none
-
-// helpers
 function toCanvasCoords(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
   return {
@@ -239,951 +144,300 @@ function updateModeUI() {
     singleControls.style.display = 'inline-flex';
     collageControls.style.display = 'none';
     collageSlotLoaders.style.display = 'none';
-    // reset collage overlay
-    clearCollageSlots();
+    slotOverlay.style.display = 'none';
   } else {
     singleControls.style.display = 'none';
     collageControls.style.display = 'inline-flex';
     collageSlotLoaders.style.display = 'flex';
-    // ensure we have initial slots visible (do not auto-generate yet)
   }
+  drawAll();
 }
 
-// radio handlers
 for (const r of modeRadios) {
-  r.addEventListener('change', () => {
-    if (r.checked) {
-      mode = r.value;
-      // when switching to single, keep single image unchanged
-      updateModeUI();
-      drawAll();
-    }
-  });
+  r.addEventListener('change', () => { if (r.checked) { mode = r.value; updateModeUI(); } });
 }
 
-// --- Single image load & paste (unchanged) ---
-imageInputLabel.addEventListener('click', () => imageInput.click());
+// --- Image Loading ---
 imageInput.addEventListener('change', e => {
   const f = e.target.files[0];
-  if (f) loadSingleImageFile(f);
+  if (f) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      image = new Image();
+      image.onload = () => { fitSingleImageToCanvas(); };
+      image.src = ev.target.result;
+    };
+    reader.readAsDataURL(f);
+  }
 });
-// --- Paste handler (supports both single image and collage mode) ---
+
 window.addEventListener('paste', e => {
-  if (!e.clipboardData) return;
   const items = e.clipboardData.items;
   for (let i = 0; i < items.length; i++) {
-    const it = items[i];
-    if (it.type && it.type.indexOf('image') !== -1) {
-      const file = it.getAsFile();
-      if (!file) continue;
-
-      // If collage mode is active and a slot is selected, paste into that slot
-      if (mode === 'collage' && activeSlotIndex >= 0) {
-        loadImageToSlot(activeSlotIndex, file);
-      } else if (mode === 'single') {
-        // Otherwise, behave as before for single image mode
-        loadSingleImageFile(file);
+    if (items[i].type.indexOf('image') !== -1) {
+      const file = items[i].getAsFile();
+      if (mode === 'collage' && activeSlotIndex >= 0) loadImageToSlot(activeSlotIndex, file);
+      else if (mode === 'single') {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          image = new Image();
+          image.onload = () => fitSingleImageToCanvas();
+          image.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
       }
-
-      e.preventDefault();
-      return;
     }
   }
 });
 
-function loadSingleImageFile(file) {
-  const reader = new FileReader();
-  reader.onload = ev => {
-    image = new Image();
-    image.onload = () => { fitSingleImageToCanvas(); };
-    image.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-// background image
-bgImageInput.addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => { bgImage = new Image(); bgImage.onload = drawAll; bgImage.src = ev.target.result; };
-  r.readAsDataURL(f);
-});
-
-// --- Collage generation (Phase 1) ---
-// clear previous loaders/slots
-function clearCollageSlots() {
-  collageSlots = [];
-  activeSlotIndex = -1;
-  collageSlotLoaders.innerHTML = '';
-  slotOverlay.style.display = 'none';
-}
-
-// create slot loaders and empty slot objects
-generateCollageSlots.addEventListener('click', () => {
+// --- Collage Logic ---
+document.getElementById('generateCollageSlots').addEventListener('click', () => {
   const count = parseInt(collageCount.value, 10);
-  clearCollageSlots();
-  for (let i=0;i<count;i++){
-    const slotId = `slotfile-${i}`;
+  collageSlots = [];
+  collageSlotLoaders.innerHTML = '';
+  activeSlotIndex = -1;
+  
+  for (let i = 0; i < count; i++) {
     const wrapper = document.createElement('div');
     wrapper.className = 'slot-container';
     const label = document.createElement('label');
     label.className = 'slot-load';
-    label.textContent = `Load slot ${i+1}`;
-    label.style.userSelect = 'none';
-    // hidden input
+    label.textContent = `Slot ${i+1}`;
+    
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'image/*';
     fileInput.style.display = 'none';
-    fileInput.id = slotId;
-    // when label clicked, trigger file input
+    fileInput.addEventListener('change', (e) => { if(e.target.files[0]) loadImageToSlot(i, e.target.files[0]); });
+    
     label.addEventListener('click', () => fileInput.click());
-    // when file selected, load into slot
-    fileInput.addEventListener('change', (e) => {
-      const f = e.target.files[0];
-      if (f) loadImageToSlot(i, f);
-    });
-    // click wrapper to make slot active
-    wrapper.addEventListener('click', () => {
-      setActiveSlot(i);
-    });
+    wrapper.addEventListener('click', () => setActiveSlot(i));
     wrapper.appendChild(label);
-    wrapper.appendChild(fileInput);
     collageSlotLoaders.appendChild(wrapper);
-    // push empty slot
-    collageSlots.push({ img: null, rect: {x:0,y:0,w:0,h:0}, fileInput });
+    
+    collageSlots.push({ img: null, rect: {x:0,y:0,w:0,h:0}, offsetX: 0, offsetY: 0, scale: 1 });
   }
-  computeCollageLayout(); // compute rectangles
+  computeCollageLayout();
   drawAll();
-  collageSlotLoaders.style.display = 'flex';
 });
 
-// load image into collage slot
 function loadImageToSlot(index, file) {
-  if (!collageSlots[index]) return;
   const reader = new FileReader();
   reader.onload = ev => {
     const img = new Image();
     img.onload = () => {
-	const r = collageSlots[index].rect;
-const scale = Math.min(r.w / img.width, r.h / img.height);
-collageSlots[index].scale = scale;
-collageSlots[index].offsetX = r.x + (r.w - img.width * scale) / 2;
-collageSlots[index].offsetY = r.y + (r.h - img.height * scale) / 2;
-
+      const r = collageSlots[index].rect;
+      const s = Math.min(r.w / img.width, r.h / img.height);
       collageSlots[index].img = img;
-      // default: center-fit the image into slot when loaded (Phase1)
+      collageSlots[index].scale = s;
+      collageSlots[index].offsetX = r.x + (r.w - img.width * s) / 2;
+      collageSlots[index].offsetY = r.y + (r.h - img.height * s) / 2;
       drawAll();
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
-  // mark active
   setActiveSlot(index);
 }
 
-// set active slot (for future per-slot controls)
-// shows DOM overlay to visually indicate selection (NOT drawn to canvas)
 function setActiveSlot(index) {
   activeSlotIndex = index;
-  // show overlay positioned over the slot rect
   const slot = collageSlots[index];
-  if (!slot) { slotOverlay.style.display='none'; return; }
+  if (!slot) { slotOverlay.style.display = 'none'; return; }
   const r = slot.rect;
-  // canvas container rect to compute absolute position
-  const containerRect = canvas.getBoundingClientRect();
-  // because canvas is same size as drawing coordinate space (we draw 1200x720), map directly:
-  const left = containerRect.left + (r.x / canvas.width) * containerRect.width;
-  const top  = containerRect.top  + (r.y / canvas.height)* containerRect.height;
-  const width = (r.w / canvas.width) * containerRect.width;
-  const height= (r.h / canvas.height)* containerRect.height;
-  // position overlay element relative to container
-  slotOverlay.style.left = (r.x) + 'px';
-  slotOverlay.style.top = (r.y) + 'px';
-  slotOverlay.style.width = (r.w) + 'px';
-  slotOverlay.style.height = (r.h) + 'px';
+  slotOverlay.style.left = r.x + 'px';
+  slotOverlay.style.top = r.y + 'px';
+  slotOverlay.style.width = r.w + 'px';
+  slotOverlay.style.height = r.h + 'px';
   slotOverlay.style.display = 'block';
 }
 
-// compute collage slot rectangles for the chosen layout & count
 function computeCollageLayout() {
   const count = collageSlots.length;
   const layout = collageLayout.value;
   const W = canvas.width, H = canvas.height;
 
-  // helper to set n equal grid
-  function equalGrid(rows, cols) {
-    const w = Math.floor(W / cols);
-    const h = Math.floor(H / rows);
-    let idx = 0;
-    for (let r=0;r<rows;r++){
-      for (let c=0;c<cols;c++){
-        if (idx >= count) return;
-        collageSlots[idx].rect = { x: c*w, y: r*h, w: w, h: h };
-        idx++;
-      }
-    }
-  }
-
-  // choose layout templates
-  if (layout === 'row') {
-  const w = Math.floor(W / count);
-  for (let i = 0; i < count; i++)
-    collageSlots[i].rect = { x: i * w, y: 0, w: w, h: H };
-
-} else if (layout === 'column') {
-  const h = Math.floor(H / count);
-  for (let i = 0; i < count; i++)
-    collageSlots[i].rect = { x: 0, y: i * h, w: W, h: h };
-
-} else if (layout === 'grid-equal') {
-  // Dynamically create a roughly square grid for any number of images
-  const cols = Math.ceil(Math.sqrt(count));   // number of columns
-  const rows = Math.ceil(count / cols);       // number of rows
-
-  const cellW = Math.floor(W / cols);
-  const cellH = Math.floor(H / rows);
-
-  let idx = 0;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols && idx < count; c++, idx++) {
-      collageSlots[idx].rect = {
-        x: c * cellW,
-        y: r * cellH,
-        w: cellW,
-        h: cellH
-      };
-    }
-  }
-
-
-
-} else if (layout === 'grid-1big') {
-  // One big on left, smaller ones stacked vertically (Big = 1/3 of width)
-  const bigW = Math.floor(W / 3);  // 1/3 width for the big image
-  const smallW = W - bigW;         // remaining 2/3 width for the smaller ones
-  const bigH = H;
-
-  collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: bigH };
-
-  const smallCount = count - 1;
-  if (smallCount > 0) {
-    const smallH = Math.floor(H / smallCount);
-    for (let i = 1; i < count; i++) {
-      collageSlots[i].rect = {
-        x: bigW,                  // start right after the big image
-        y: (i - 1) * smallH,
-        w: smallW,
-        h: smallH
-      };
-    }
-  }
-
-
-} else if (layout === 'grid-equal-43') {
-  // Grid layout biased toward a 4:3 (wider) aspect ratio
-  const total = count;
-  let rows, cols;
-
-  if (total <= 3) {
-    rows = 1;
-    cols = total;
-  } else if (total <= 4) {
-    rows = 1;
-    cols = 4;
-  } else if (total <= 6) {
-    rows = 2;
-    cols = 3;
-  } else if (total <= 8) {
-    rows = 2;
-    cols = 4;
-	} else if (total <= 10) {
-    rows = 2;
-    cols = 5;
-    } else if (total <= 12) {
-    rows = 2;
-    cols = 6;
-	} else if (total <= 14) {
-    rows = 2;
-    cols = 7;
-	} else if (total <= 16) {
-    rows = 2;
-    cols = 8;
-  } else {
-    // For larger sets, expand evenly but still bias width
-    cols = Math.ceil(Math.sqrt(total * (4 / 3)));
-    rows = Math.ceil(total / cols);
-  }
-
-  const cellW = Math.floor(W / cols);
-  const cellH = Math.floor(H / rows);
-
-  let idx = 0;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols && idx < total; c++, idx++) {
-      collageSlots[idx].rect = {
-        x: c * cellW,
-        y: r * cellH,
-        w: cellW,
-        h: cellH
-      };
-    }
-  }
-
-
-} else if (layout === 'grid-2big') {
-  // Two big on top row, small images below — Bigs share top 1/3 of height
-  const bigW = Math.floor(W / 2);
-  const bigH = Math.floor(H / 3);
-  const smallH = H - bigH;
-
-  if (count >= 1)
-    collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: bigH };
-  if (count >= 2)
-    collageSlots[1].rect = { x: bigW, y: 0, w: bigW, h: bigH };
-
-  const smallCount = Math.max(0, count - 2);
-  if (smallCount > 0) {
-    const smallW = Math.floor(W / smallCount);
-    for (let i = 0; i < smallCount; i++) {
-      collageSlots[2 + i].rect = {
-        x: i * smallW,
-        y: bigH,
-        w: smallW,
-        h: smallH
-      };
-    }
-  }
-
-} else if (layout === 'grid-1big-grid') {
-  // One big on left, grid on right (Big = 1/3 of width)
-  const bigW = Math.floor(W / 3);
-  const gridW = W - bigW;
-
-  collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: H };
-
-  const others = count - 1;
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-
-    let idx = 1;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: bigW + c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-
-} else if (layout === 'grid-1big-grid-left') {
-  // One big on right, grid on left (Big = 1/3 of width)
-  const bigW = Math.floor(W / 3);
-  const gridW = W - bigW;
-
-  collageSlots[0].rect = { x: gridW, y: 0, w: bigW, h: H };
-
-  const others = count - 1;
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-
-    let idx = 1;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-
-} else if (layout === 'grid-1big-grid-top') {
-  // One big on top, grid on bottom (Big = 1/3 of height)
-  const bigH = Math.floor(H / 3);
-  const gridH = H - bigH;
-
-  collageSlots[0].rect = { x: 0, y: 0, w: W, h: bigH };
-
-  const others = count - 1;
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(W / cols);
-    const cellH = Math.floor(gridH / rows);
-
-    let idx = 1;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: c * cellW,
-          y: bigH + r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-
-} else if (layout === 'grid-1big-grid-bottom') {
-  // One big on bottom, grid on top (Big = 1/3 of height)
-  const bigH = Math.floor(H / 3);
-  const gridH = H - bigH;
-
-  collageSlots[0].rect = { x: 0, y: gridH, w: W, h: bigH };
-
-  const others = count - 1;
-  if (others > 0) {
-    const rows = others > 4 ? 2 : 1;
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(W / cols);
-    const cellH = Math.floor(gridH / rows);
-
-    let idx = 1;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-
-} else if (layout === 'grid-2stack-grid') {
-  // Two big stacked on left, grid on right (Bigs = 1/3 width total)
-  const bigW = Math.floor(W / 3);
-  const gridW = W - bigW;
-  const bigH = Math.floor(H / 2);
-
-  if (count >= 1)
-    collageSlots[0].rect = { x: 0, y: 0, w: bigW, h: bigH };
-  if (count >= 2)
-    collageSlots[1].rect = { x: 0, y: bigH, w: bigW, h: bigH };
-
-  const others = Math.max(0, count - 2);
-  if (others > 0) {
-    const rows = others > 4 ? 2 : Math.ceil(others / 2);
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-
-    let idx = 2;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: bigW + c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-
-} else if (layout === 'grid-2stack-grid-left') {
-  // Two big stacked on right, grid on left (Bigs = 1/3 width total)
-  const bigW = Math.floor(W / 3);
-  const gridW = W - bigW;
-  const bigH = Math.floor(H / 2);
-
-  if (count >= 1)
-    collageSlots[0].rect = { x: gridW, y: 0, w: bigW, h: bigH };
-  if (count >= 2)
-    collageSlots[1].rect = { x: gridW, y: bigH, w: bigW, h: bigH };
-
-  const others = Math.max(0, count - 2);
-  if (others > 0) {
-    const rows = others > 4 ? 2 : Math.ceil(others / 2);
-    const cols = Math.ceil(others / rows);
-    const cellW = Math.floor(gridW / cols);
-    const cellH = Math.floor(H / rows);
-
-    let idx = 2;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols && idx < count; c++, idx++) {
-        collageSlots[idx].rect = {
-          x: c * cellW,
-          y: r * cellH,
-          w: cellW,
-          h: cellH
-        };
-      }
-    }
-  }
-  } else {
-    // fallback to equal grid
-    computeCollageLayout('grid-equal');
+  if (layout === 'grid-equal') {
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    const cellW = W / cols, cellH = H / rows;
+    collageSlots.forEach((s, i) => {
+      s.rect = { x: (i % cols) * cellW, y: Math.floor(i / cols) * cellH, w: cellW, h: cellH };
+    });
+  } else if (layout === 'row') {
+    const w = W / count;
+    collageSlots.forEach((s, i) => s.rect = { x: i * w, y: 0, w: w, h: H });
+  } else if (layout === 'column') {
+    const h = H / count;
+    collageSlots.forEach((s, i) => s.rect = { x: 0, y: i * h, w: W, h: h });
   }
 }
 
-// when layout or count changes, recompute (but only if slots exist)
-collageLayout.addEventListener('change', () => {
-  if (collageSlots.length) { computeCollageLayout(); drawAll(); }
-});
-collageCount.addEventListener('change', () => {
-  // do nothing until user clicks Generate slots
-});
-
-
-// --- Phase 2 Enhancements: per-slot drag/zoom & rearrange ---
-for (const slot of collageSlots) {
-  slot.offsetX = 0;
-  slot.offsetY = 0;
-  slot.scale = 1;
-}
-
-// Add dragging & zooming for the selected slot
-let isDraggingSlot = false;
-let slotDragStart = {x: 0, y: 0};
+// --- Unified Interaction Handlers (FIXED) ---
 
 canvas.addEventListener('mousedown', (e) => {
-  if (mode !== 'collage') return;
-  if (activeSlotIndex < 0) return;
-  const slot = collageSlots[activeSlotIndex];
   const p = toCanvasCoords(e.clientX, e.clientY);
-  isDraggingSlot = true;
-  slotDragStart = { x: p.x - slot.offsetX, y: p.y - slot.offsetY };
+  if (mode === 'collage') {
+    // Check if clicking into a new slot
+    for (let i = collageSlots.length - 1; i >= 0; i--) {
+      const r = collageSlots[i].rect;
+      if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) {
+        setActiveSlot(i);
+        break;
+      }
+    }
+    if (activeSlotIndex >= 0) {
+      isDraggingSlot = true;
+      slotDragStart = { x: p.x - collageSlots[activeSlotIndex].offsetX, y: p.y - collageSlots[activeSlotIndex].offsetY };
+    }
+  } else {
+    if (!image || forceStretchMode) return;
+    isDragging = true;
+    dragStartX = p.x - offsetX;
+    dragStartY = p.y - offsetY;
+    canvas.style.cursor = 'grabbing';
+  }
 });
 
 window.addEventListener('mousemove', (e) => {
-  if (mode !== 'collage') return;
-  if (!isDraggingSlot || activeSlotIndex < 0) return;
-  const slot = collageSlots[activeSlotIndex];
   const p = toCanvasCoords(e.clientX, e.clientY);
-  slot.offsetX = p.x - slotDragStart.x;
-  slot.offsetY = p.y - slotDragStart.y;
-  drawAll();
+  if (mode === 'collage' && isDraggingSlot && activeSlotIndex >= 0) {
+    collageSlots[activeSlotIndex].offsetX = p.x - slotDragStart.x;
+    collageSlots[activeSlotIndex].offsetY = p.y - slotDragStart.y;
+    drawAll();
+  } else if (mode === 'single' && isDragging) {
+    offsetX = p.x - dragStartX;
+    offsetY = p.y - dragStartY;
+    drawAll();
+  }
 });
 
 window.addEventListener('mouseup', () => {
-  if (mode !== 'collage') return;
+  isDragging = false;
   isDraggingSlot = false;
+  canvas.style.cursor = 'move';
 });
 
-// Zoom with mouse wheel
 canvas.addEventListener('wheel', (e) => {
-  if (mode !== 'collage') return;
-  if (activeSlotIndex < 0) return;
-  const slot = collageSlots[activeSlotIndex];
   e.preventDefault();
   const p = toCanvasCoords(e.clientX, e.clientY);
-  const prevScale = slot.scale;
-  const zoomFactor = (e.deltaY < 0) ? 1.12 : 0.88;
-  slot.scale = Math.max(0.1, Math.min(10, slot.scale * zoomFactor));
-  slot.offsetX = p.x - (p.x - slot.offsetX) * (slot.scale / prevScale);
-  slot.offsetY = p.y - (p.y - slot.offsetY) * (slot.scale / prevScale);
+  const zoom = e.deltaY < 0 ? 1.1 : 0.9;
+  
+  if (mode === 'collage' && activeSlotIndex >= 0) {
+    const s = collageSlots[activeSlotIndex];
+    const oldScale = s.scale;
+    s.scale = Math.max(0.1, s.scale * zoom);
+    s.offsetX = p.x - (p.x - s.offsetX) * (s.scale / oldScale);
+    s.offsetY = p.y - (p.y - s.offsetY) * (s.scale / oldScale);
+  } else if (mode === 'single' && image) {
+    const oldScale = scale;
+    scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * zoom));
+    offsetX = p.x - (p.x - offsetX) * (scale / oldScale);
+    offsetY = p.y - (p.y - offsetY) * (scale / oldScale);
+  }
   drawAll();
 }, { passive: false });
 
-// Touch pinch zoom for collage slots
-let collagePinching = false;
-let collageInitialDist = 0;
-let collageLastScale = 1;
-
-canvas.addEventListener('touchstart', (e) => {
-  if (mode !== 'collage') return;
-  const p = toCanvasCoords(e.touches[0].clientX, e.touches[0].clientY);
-  for (let i = collageSlots.length - 1; i >= 0; i--) {
-    const r = collageSlots[i].rect;
-    if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) {
-      setActiveSlot(i);
-      break;
-    }
-  }
-  if (activeSlotIndex < 0) return;
-  if (e.touches.length === 1) {
+// --- Touch Handlers (Unified) ---
+canvas.addEventListener('touchstart', e => {
     const p = toCanvasCoords(e.touches[0].clientX, e.touches[0].clientY);
-    isDraggingSlot = true;
-    slotDragStart = { x: p.x - collageSlots[activeSlotIndex].offsetX, y: p.y - collageSlots[activeSlotIndex].offsetY };
-  } else if (e.touches.length === 2) {
-    collagePinching = true;
-    collageInitialDist = getPinchDistance(e.touches);
-    collageLastScale = collageSlots[activeSlotIndex].scale;
-  }
+    if (mode === 'collage') {
+        for (let i = collageSlots.length - 1; i >= 0; i--) {
+            const r = collageSlots[i].rect;
+            if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) { setActiveSlot(i); break; }
+        }
+        if (activeSlotIndex >= 0) {
+            if (e.touches.length === 1) {
+                isDraggingSlot = true;
+                slotDragStart = { x: p.x - collageSlots[activeSlotIndex].offsetX, y: p.y - collageSlots[activeSlotIndex].offsetY };
+            } else {
+                collagePinching = true;
+                collageInitialDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                collageLastScale = collageSlots[activeSlotIndex].scale;
+            }
+        }
+    } else {
+        if (e.touches.length === 1) {
+            isDragging = true;
+            dragStartX = p.x - offsetX; dragStartY = p.y - offsetY;
+        } else {
+            isPinching = true;
+            initialPinchDistance = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            lastScale = scale;
+        }
+    }
 }, { passive: false });
 
-canvas.addEventListener('touchmove', (e) => {
-  if (mode !== 'collage') return;
-  if (activeSlotIndex < 0) return;
-  const slot = collageSlots[activeSlotIndex];
-  if (e.touches.length === 1 && isDraggingSlot) {
+canvas.addEventListener('touchmove', e => {
     e.preventDefault();
-    const p = toCanvasCoords(e.touches[0].clientX, e.touches[0].clientY);
-    slot.offsetX = p.x - slotDragStart.x;
-    slot.offsetY = p.y - slotDragStart.y;
+    if (mode === 'collage' && activeSlotIndex >= 0) {
+        if (e.touches.length === 1 && isDraggingSlot) {
+            const p = toCanvasCoords(e.touches[0].clientX, e.touches[0].clientY);
+            collageSlots[activeSlotIndex].offsetX = p.x - slotDragStart.x;
+            collageSlots[activeSlotIndex].offsetY = p.y - slotDragStart.y;
+        } else if (e.touches.length === 2 && collagePinching) {
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            collageSlots[activeSlotIndex].scale = collageLastScale * (dist / collageInitialDist);
+        }
+    } else if (mode === 'single' && image) {
+        if (e.touches.length === 1 && isDragging) {
+            const p = toCanvasCoords(e.touches[0].clientX, e.touches[0].clientY);
+            offsetX = p.x - dragStartX; offsetY = p.y - dragStartY;
+        } else if (e.touches.length === 2 && isPinching) {
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            scale = lastScale * (dist / initialPinchDistance);
+        }
+    }
     drawAll();
-  } else if (e.touches.length === 2 && collagePinching) {
-    e.preventDefault();
-    const newDist = getPinchDistance(e.touches);
-    const ratio = newDist / collageInitialDist;
-    const newScale = Math.max(0.1, Math.min(10, collageLastScale * ratio));
-    slot.scale = newScale;
-    drawAll();
-  }
 }, { passive: false });
 
-canvas.addEventListener('touchend', () => {
-  if (mode !== 'collage') return;
-  isDraggingSlot = false;
-  collagePinching = false;
-});
+canvas.addEventListener('touchend', () => { isDragging = false; isDraggingSlot = false; isPinching = false; collagePinching = false; });
 
-
-
-
-
-
-// --- Drawing logic ---
-// Draw everything depending on mode. IMPORTANT: DOM overlay selection is NOT drawn into canvas/export.
-function drawAll(){
-  // clear canvas
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // background layer
-  if (toggleBg.checked && bgImage && bgImage.complete && bgImage.naturalWidth > 0) {
-    ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-  } else if (toggleGradient.checked) {
-    ctx.fillStyle = createCanvasGradient(gradDirection.value, gradColor1.value, gradColor2.value);
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-  } else {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-  }
-
-  if (mode === 'single') {
-    // draw single image (existing behavior)
-    if (image) {
-      if (forceStretchMode) ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-      else ctx.drawImage(image, offsetX, offsetY, image.width * scale, image.height * scale);
-    }
-  } else {
-    // collage mode: draw each slot's image if present, otherwise draw placeholder
-    for (let i=0;i<collageSlots.length;i++){
-      const s = collageSlots[i];
-      const r = s.rect;
-      // safety: ensure rect exists
-      if (!r) continue;
-      // draw background placeholder
-      ctx.save();
-      ctx.strokeStyle = '#ccc';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(r.x+2, r.y+2, r.w-4, r.h-4);
-
-     if (s.img) {
-  const img = s.img;
-  ctx.save();
-  // Clip to the slot region so images don’t draw outside their box
-  ctx.beginPath();
-  ctx.rect(r.x, r.y, r.w, r.h);
-  ctx.clip();
-
-  // Apply offset and scale (relative to the slot)
-  const iw = img.width * s.scale;
-  const ih = img.height * s.scale;
-  const ix = s.offsetX;
-  const iy = s.offsetY;
-
-  ctx.drawImage(img, ix, iy, iw, ih);
-  ctx.restore();
-}
- else {
-        // placeholder text
-        ctx.fillStyle = '#f5f5f5';
-        ctx.fillRect(r.x+2, r.y+2, r.w-4, r.h-4);
-        ctx.fillStyle = '#999';
-        ctx.font = 'bold 18px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('Empty slot', r.x + r.w/2, r.y + r.h/2);
-      }
-      ctx.restore();
-    }
-  }
-
-  // global border (applies to final export if enabled)
-  if (toggleBorder.checked) {
-    ctx.strokeStyle = 'grey';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(10,10,canvas.width-20,canvas.height-20);
-    ctx.strokeRect(14,14,canvas.width-28,canvas.height-28);
-  }
-
-  // image credit (global) — drawn into canvas (if checked)
-  if (toggleLogo.checked) {
-    const text = logoTextInput.value.trim();
-    if (text) {
-      ctx.save();
-      const fontSize = 32;
-      ctx.font = `bold ${fontSize}px Arial`;
-      ctx.textBaseline = 'middle';
-      // measure and draw black 50% box then white text (global)
-      const metrics = ctx.measureText(text);
-      const tw = metrics.width + 28;
-      const th = fontSize + 18;
-      let x = 0, y = 0;
-      switch (logoPosition.value) {
-        case 'top-left': x = 16; y = 16; break;
-        case 'top-right': x = canvas.width - tw - 16; y = 16; break;
-        case 'bottom-left': x = 16; y = canvas.height - th - 16; break;
-        default: x = canvas.width - tw - 16; y = canvas.height - th - 16; break;
-      }
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(x, y, tw, th);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(text, x + 14, y + th/2);
-      ctx.restore();
-    }
-  }
-}
-
-// gradient helper
-function createCanvasGradient(direction, c1, c2) {
-  let x0=0,y0=0,x1=0,y1=0;
-  switch (direction) {
-    case 'top-bottom': y1 = canvas.height; break;
-    case 'bottom-top': y0 = canvas.height; break;
-    case 'left-right': x1 = canvas.width; break;
-    case 'right-left': x0 = canvas.width; break;
-    case 'tl-br': x1 = canvas.width; y1 = canvas.height; break;
-    case 'tr-bl': x0 = canvas.width; y1 = canvas.height; break;
-    case 'bl-tr': y0 = canvas.height; x1 = canvas.width; break;
-    case 'br-tl': x0 = canvas.width; y0 = canvas.height; break;
-  }
-  const g = ctx.createLinearGradient(x0,y0,x1,y1);
-  g.addColorStop(0, c1);
-  g.addColorStop(1, c2);
-  return g;
-}
-
-// --- Single image controls (existing) ---
+// --- Drawing & Helpers ---
 function fitSingleImageToCanvas() {
   if (!image) return;
   scale = Math.min(canvas.width / image.width, canvas.height / image.height);
   offsetX = (canvas.width - image.width * scale) / 2;
   offsetY = (canvas.height - image.height * scale) / 2;
-  forceStretchMode = false;
   drawAll();
 }
 
-stretchButton.addEventListener('click', () => {
-  if (mode === 'single') {
-    fitSingleImageToCanvas();
-  } else {
-    if (activeSlotIndex < 0) return;
-    const s = collageSlots[activeSlotIndex];
-    if (!s.img) return;
-    const r = s.rect, img = s.img;
-    const scale = Math.min(r.w / img.width, r.h / img.height);
-    s.scale = scale;
-    s.offsetX = r.x + (r.w - img.width * scale) / 2;
-    s.offsetY = r.y + (r.h - img.height * scale) / 2;
-    drawAll();
-  }
-});
+function drawAll() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-
-fitLongestSideButton.addEventListener('click', () => {
-  if (mode === 'single') {
-    if (!image) return;
-    if (image.width > image.height)
-      scale = canvas.width / image.width;
-    else scale = canvas.height / image.height;
-    offsetX = (canvas.width - image.width * scale) / 2;
-    offsetY = (canvas.height - image.height * scale) / 2;
-    forceStretchMode = false;
-    drawAll();
-  } else {
-    if (activeSlotIndex < 0) return;
-    const s = collageSlots[activeSlotIndex];
-    if (!s.img) return;
-    const r = s.rect, img = s.img;
-    const scale = Math.max(r.w / img.width, r.h / img.height);
-    s.scale = scale;
-    s.offsetX = r.x + (r.w - img.width * scale) / 2;
-    s.offsetY = r.y + (r.h - img.height * scale) / 2;
-    drawAll();
-  }
-});
-
-
-centerButton.addEventListener('click', () => {
-  if (mode === 'single') {
-    if (!image) return;
-    offsetX = (canvas.width - image.width * scale) / 2;
-    offsetY = (canvas.height - image.height * scale) / 2;
-    drawAll();
-  } else {
-    if (activeSlotIndex < 0) return;
-    const s = collageSlots[activeSlotIndex];
-    if (!s.img) return;
-    const r = s.rect, img = s.img;
-    s.offsetX = r.x + (r.w - img.width * s.scale) / 2;
-    s.offsetY = r.y + (r.h - img.height * s.scale) / 2;
-    drawAll();
-  }
-});
-
-
-forceStretchButton.addEventListener('click', () => {
-  if (mode === 'single') {
-    forceStretchMode = true;
-    drawAll();
-  }
-});
-fillCanvasButton.addEventListener('click', () => {
-  if (mode === 'single') {
-    if (!image) return;
-    scale = Math.max(canvas.width / image.width, canvas.height / image.height);
-    offsetX = (canvas.width - image.width * scale) / 2;
-    offsetY = (canvas.height - image.height * scale) / 2;
-    forceStretchMode = false;
-    drawAll();
-  } else { computeCollageLayout(); drawAll(); }
-});
-
-// --- Pan / zoom for single-image (kept) ---
-canvas.addEventListener('mousedown', (e) => {
-  if (mode !== 'collage') return;
-  const p = toCanvasCoords(e.clientX, e.clientY);
-
-  // detect which slot is clicked
-  for (let i = collageSlots.length - 1; i >= 0; i--) {
-    const r = collageSlots[i].rect;
-    if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) {
-      setActiveSlot(i);
-      break;
-    }
+  if (mode === 'single' && image) {
+    ctx.drawImage(image, offsetX, offsetY, image.width * scale, image.height * scale);
+  } else if (mode === 'collage') {
+    collageSlots.forEach(s => {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(s.rect.x, s.rect.y, s.rect.w, s.rect.h); ctx.clip();
+      if (s.img) {
+        ctx.drawImage(s.img, s.offsetX, s.offsetY, s.img.width * s.scale, s.img.height * s.scale);
+      } else {
+        ctx.fillStyle = "#f0f0f0"; ctx.fillRect(s.rect.x, s.rect.y, s.rect.w, s.rect.h);
+        ctx.strokeStyle = "#ccc"; ctx.strokeRect(s.rect.x, s.rect.y, s.rect.w, s.rect.h);
+      }
+      ctx.restore();
+    });
   }
 
-  if (activeSlotIndex < 0) return;
-  const slot = collageSlots[activeSlotIndex];
-  isDraggingSlot = true;
-  slotDragStart = { x: p.x - slot.offsetX, y: p.y - slot.offsetY };
-});
-
-window.addEventListener('mousemove', (e) => {
-  if (mode !== 'single') return;
-  if (!isDragging || !image || forceStretchMode) return;
-  const p = toCanvasCoords(e.clientX, e.clientY);
-  offsetX = p.x - dragStartX;
-  offsetY = p.y - dragStartY;
-  drawAll();
-});
-window.addEventListener('mouseup', () => {
-  if (mode !== 'single') return;
-  if (isDragging) { isDragging = false; canvas.style.cursor = 'move'; }
-});
-canvas.addEventListener('wheel', (e) => {
-  if (mode !== 'single') return;
-  if (!image || forceStretchMode) return;
-  e.preventDefault();
-  const p = toCanvasCoords(e.clientX, e.clientY);
-  const prevScale = scale;
-  const zoomFactor = (e.deltaY < 0) ? 1.12 : 0.88;
-  scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * zoomFactor));
-  offsetX = p.x - (p.x - offsetX) * (scale / prevScale);
-  offsetY = p.y - (p.y - offsetY) * (scale / prevScale);
-  drawAll();
-}, { passive: false });
-
-// touch pinch & pan for single image (left intact)
-canvas.addEventListener('touchstart', (e) => {
-  if (mode !== 'single') return;
-  if (!image) return;
-  if (e.touches.length === 1) {
-    const p = toCanvasCoords(e.touches[0].clientX, e.touches[0].clientY);
-    isDragging = true;
-    dragStartX = p.x - offsetX;
-    dragStartY = p.y - offsetY;
-  } else if (e.touches.length === 2) {
-    isPinching = true;
-    initialPinchDistance = getPinchDistance(e.touches);
-    lastScale = scale;
+  if (document.getElementById('toggleBorder').checked) {
+    ctx.strokeStyle = "grey"; ctx.lineWidth = 2;
+    ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+    ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
   }
-}, { passive: false });
-canvas.addEventListener('touchmove', (e) => {
-  if (mode !== 'single') return;
-  if (!image) return;
-  if (e.touches.length === 1 && isDragging) {
-    e.preventDefault();
-    const p = toCanvasCoords(e.touches[0].clientX, e.touches[0].clientY);
-    offsetX = p.x - dragStartX;
-    offsetY = p.y - dragStartY;
-    drawAll();
-  } else if (e.touches.length === 2 && isPinching) {
-    e.preventDefault();
-    const newDist = getPinchDistance(e.touches);
-    const ratio = newDist / initialPinchDistance;
-    const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, lastScale * ratio));
-    // center around midpoint:
-    const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-    const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    const center = toCanvasCoords(cx, cy);
-    offsetX = center.x - (center.x - offsetX) * (newScale / scale);
-    offsetY = center.y - (center.y - offsetY) * (newScale / scale);
-    scale = newScale;
-    drawAll();
-  }
-}, { passive: false });
-canvas.addEventListener('touchend', (e) => {
-  if (mode !== 'single') return;
-  if (e.touches.length < 2) isPinching = false;
-  if (e.touches.length === 0) isDragging = false;
-});
-
-// helpers
-function getPinchDistance(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
-  return Math.hypot(dx, dy);
 }
 
-// --- Download (single or collage merged) ---
-downloadCanvasButton.addEventListener('click', () => {
-  let filename = fileNameInput.value.trim() || 'resized';
-  const format = downloadFormat.value;
-  const mime = (format === 'jpeg') ? 'image/jpeg' : 'image/webp';
-  const ext = (format === 'jpeg') ? '.jpg' : '.webp';
-  if (!filename.toLowerCase().endsWith(ext)) filename += ext;
-  // Ensure overlay highlight (DOM) is hidden before exporting (it shouldn't be drawn anyway,
-  // but we keep it hidden to be safe)
-  const prevOverlayDisplay = slotOverlay.style.display;
-  slotOverlay.style.display = 'none';
-  // export canvas data
-  const dataUrl = canvas.toDataURL(mime, 0.95);
-  slotOverlay.style.display = prevOverlayDisplay;
+document.getElementById('downloadCanvasButton').addEventListener('click', () => {
   const link = document.createElement('a');
-  link.download = filename;
-  link.href = dataUrl;
+  link.download = 'collage_export.jpg';
+  link.href = canvas.toDataURL('image/jpeg', 0.9);
   link.click();
 });
 
-// redraw on control changes
-[toggleBorder, toggleBg, toggleGradient, gradColor1, gradColor2, gradDirection,
- toggleLogo, logoTextInput, logoPosition].forEach(el => el.addEventListener('change', drawAll));
-logoTextInput.addEventListener('input', drawAll);
-
-// initial draw
+// Init
 updateModeUI();
-drawAll();
 </script>
 </body>
 </html>
-
-
-
