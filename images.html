@@ -751,42 +751,74 @@ for (const slot of collageSlots) {
 let isDraggingSlot = false;
 let slotDragStart = {x: 0, y: 0};
 
+// --- UNIFIED INPUT HANDLERS ---
+
 canvas.addEventListener('mousedown', (e) => {
-  if (mode !== 'collage') return;
-  if (activeSlotIndex < 0) return;
-  const slot = collageSlots[activeSlotIndex];
   const p = toCanvasCoords(e.clientX, e.clientY);
-  isDraggingSlot = true;
-  slotDragStart = { x: p.x - slot.offsetX, y: p.y - slot.offsetY };
+
+  if (mode === 'collage') {
+    // 1. Check if user clicked a new slot
+    for (let i = collageSlots.length - 1; i >= 0; i--) {
+      const r = collageSlots[i].rect;
+      if (p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) {
+        setActiveSlot(i);
+        break;
+      }
+    }
+    // 2. Start slot dragging
+    if (activeSlotIndex >= 0) {
+      isDraggingSlot = true;
+      const slot = collageSlots[activeSlotIndex];
+      slotDragStart = { x: p.x - slot.offsetX, y: p.y - slot.offsetY };
+    }
+  } else {
+    // 3. Start single image dragging
+    if (!image || forceStretchMode) return;
+    isDragging = true;
+    dragStartX = p.x - offsetX;
+    dragStartY = p.y - offsetY;
+    canvas.style.cursor = 'grabbing';
+  }
 });
 
 window.addEventListener('mousemove', (e) => {
-  if (mode !== 'collage') return;
-  if (!isDraggingSlot || activeSlotIndex < 0) return;
-  const slot = collageSlots[activeSlotIndex];
   const p = toCanvasCoords(e.clientX, e.clientY);
-  slot.offsetX = p.x - slotDragStart.x;
-  slot.offsetY = p.y - slotDragStart.y;
-  drawAll();
+
+  if (mode === 'collage' && isDraggingSlot && activeSlotIndex >= 0) {
+    const slot = collageSlots[activeSlotIndex];
+    slot.offsetX = p.x - slotDragStart.x;
+    slot.offsetY = p.y - slotDragStart.y;
+    drawAll();
+  } else if (mode === 'single' && isDragging) {
+    offsetX = p.x - dragStartX;
+    offsetY = p.y - dragStartY;
+    drawAll();
+  }
 });
 
 window.addEventListener('mouseup', () => {
-  if (mode !== 'collage') return;
+  isDragging = false;
   isDraggingSlot = false;
+  canvas.style.cursor = 'move';
 });
 
-// Zoom with mouse wheel
 canvas.addEventListener('wheel', (e) => {
-  if (mode !== 'collage') return;
-  if (activeSlotIndex < 0) return;
-  const slot = collageSlots[activeSlotIndex];
   e.preventDefault();
   const p = toCanvasCoords(e.clientX, e.clientY);
-  const prevScale = slot.scale;
-  const zoomFactor = (e.deltaY < 0) ? 1.12 : 0.88;
-  slot.scale = Math.max(0.1, Math.min(10, slot.scale * zoomFactor));
-  slot.offsetX = p.x - (p.x - slot.offsetX) * (slot.scale / prevScale);
-  slot.offsetY = p.y - (p.y - slot.offsetY) * (slot.scale / prevScale);
+  const zoomFactor = (e.deltaY < 0) ? 1.1 : 0.9;
+
+  if (mode === 'collage' && activeSlotIndex >= 0) {
+    const slot = collageSlots[activeSlotIndex];
+    const prevScale = slot.scale;
+    slot.scale = Math.max(0.1, Math.min(10, slot.scale * zoomFactor));
+    slot.offsetX = p.x - (p.x - slot.offsetX) * (slot.scale / prevScale);
+    slot.offsetY = p.y - (p.y - slot.offsetY) * (slot.scale / prevScale);
+  } else if (mode === 'single' && image && !forceStretchMode) {
+    const prevScale = scale;
+    scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * zoomFactor));
+    offsetX = p.x - (p.x - offsetX) * (scale / prevScale);
+    offsetY = p.y - (p.y - offsetY) * (scale / prevScale);
+  }
   drawAll();
 }, { passive: false });
 
@@ -1184,5 +1216,6 @@ drawAll();
 </script>
 </body>
 </html>
+
 
 
