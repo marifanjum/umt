@@ -425,8 +425,8 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
 
     updateHeadline(id, {
       textPos: {
-        x: isRTL ? initPos.x - dx : initPos.x + dx, // 👈 invert movement for RTL
-        y: initPos.y + dy,
+		  x: initPos.x + dx,
+		y: initPos.y + dy,
       },
     });
   }
@@ -1355,8 +1355,8 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                             className="sideline-clone"
                             style={{
                               position: "absolute",
-                              left: headline.direction === "ltr" ? headline.textPos.x : "auto",
-								right: headline.direction === "rtl" ? headline.textPos.x : "auto",
+                              left: headline.textPos.x,
+right: "auto",
                               top: headline.textPos.y + (headline.sidelineOffset || 0),
                               height: headline.sideline.height || 0,
                               width: headline.sideline.width,
@@ -1368,56 +1368,64 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                           />
                         )}
                        
-                       <div
-                          data-headline="true"
-                          ref={el => headlineRefs.current[headline.id] = el}
-                          onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
-                          onTouchStart={canDragHeadlines ? e => startDragText(e, headline.id) : null}
-                          dir={headline.direction}
-                          style={{
-                            position: "absolute",
-                            left: headline.direction === "ltr" ? headline.textPos.x : "auto",
-                            right: headline.direction === "rtl" ? headline.textPos.x : "auto",    
-                            top: headline.textPos.y,
-                            fontSize: headline.fontSize,
-                            lineHeight: headline.lineHeight,
-                            color: headline.textColor,
-                            textShadow: headline.shadow.enabled ? `${headline.shadow.offsetX}px ${headline.shadow.offsetY}px ${headline.shadow.blur}px ${headline.shadow.color}` : "none",
-                            WebkitTextStroke: headline.stroke.enabled ? `${headline.stroke.width}px ${headline.stroke.color}` : "none",
-                            whiteSpace: "pre-wrap",
-                            width: headline.width ? `${headline.width}px` : "80%",
-                            maxWidth: "100%",
-                            textAlign: headline.textAlign,
-                            cursor: canDragHeadlines ? "move" : "default",
-                            zIndex: 200,
-                            
-                            // FIX 2: Set the correct font-family name for all variations
-                            fontFamily: 
-                                (headline.fontFamily.startsWith("Noto Sans Arabic")) 
-                                ? "Noto Sans Arabic" 
-                                : headline.fontFamily,
-                            
-                            // If not a Noto variation, reset these
-                            fontWeight: 'normal',
-                            fontVariationSettings: 'normal',
-                            
-                            // Set weight and width ONLY for the specific Noto variations
-                            ...(headline.fontFamily === "Noto Sans Arabic Thin" && {
-                              fontWeight: 100, // Explicitly set Thin weight
-                            }),
-                            ...(headline.fontFamily === "Noto Sans Arabic Condensed" && {
-                              fontVariationSettings: `'wdth' 62.5`, // FIX 3: Use the max condensed value for visibility
-                            }),
-                            
-                            // Re-apply a default weight for the base Noto Sans Arabic entry (optional, but safer)
-                            ...(headline.fontFamily === "Noto Sans Arabic" && {
-                              fontWeight: 400, // Regular weight
-                            }),
+                      <div
+  data-headline="true"
+  ref={el => headlineRefs.current[headline.id] = el}
+  onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+  onTouchStart={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+  dir={headline.direction}
+  style={{
+    position: "absolute",
 
-                          }}
-                        >
-                          {headline.text}
-                        </div>
+    left: headline.textPos.x,   // FIX
+    top: headline.textPos.y,    // unchanged
+
+    fontSize: headline.fontSize,
+    lineHeight: headline.lineHeight,
+    color: headline.textColor,
+
+    textShadow: headline.shadow.enabled
+      ? `${headline.shadow.offsetX}px ${headline.shadow.offsetY}px ${headline.shadow.blur}px ${headline.shadow.color}`
+      : "none",
+
+    WebkitTextStroke: headline.stroke.enabled
+      ? `${headline.stroke.width}px ${headline.stroke.color}`
+      : "none",
+
+    whiteSpace: "pre-wrap",
+    width: headline.width ? `${headline.width}px` : "80%",
+    maxWidth: "100%",
+    textAlign: headline.textAlign,
+
+    cursor: canDragHeadlines ? "move" : "default",
+    zIndex: 200,
+
+    fontFamily:
+      headline.fontFamily.startsWith("Noto Sans Arabic")
+        ? "Noto Sans Arabic"
+        : headline.fontFamily,
+
+    fontWeight: "normal",
+    fontVariationSettings: "normal",
+
+    ...(headline.fontFamily === "Noto Sans Arabic Thin" && {
+      fontWeight: 100,
+    }),
+
+    ...(headline.fontFamily === "Noto Sans Arabic Condensed" && {
+      fontVariationSettings: `'wdth' 62.5`,
+    }),
+
+    ...(headline.fontFamily === "Noto Sans Arabic" && {
+      fontWeight: 400,
+    }),
+
+    // IMPORTANT FIX for Urdu layout
+    unicodeBidi: "plaintext",
+  }}
+>
+  {headline.text}
+</div>
                       </React.Fragment>
                     ))}
                   </div>
