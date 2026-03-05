@@ -1156,7 +1156,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                           Instagram Square
                         </button>
                         <button
-                          onClick={() => { setWidth(1080); setHeight(1920); }}
+                          onClick={() => { setWidth(1280); setHeight(1600); }}
                           className="bg-gray-200 px-3 py-1 rounded"
                         >
                           Instagram Story
@@ -1167,12 +1167,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                         >
                           YouTube
                         </button>
-						  <button
-  onClick={() => { setWidth(12800); setHeight(1600); }}
-  className="bg-blue-100 border border-blue-300 px-3 py-1 rounded hover:bg-blue-200"
->
-  Insta/Social (12800x1600)
-</button>
+		 
                       </div>
                     </div>
                   )}
@@ -1360,8 +1355,8 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                             className="sideline-clone"
                             style={{
                               position: "absolute",
-                              left: headline.direction === "ltr" ? headline.textPos.x : "",
-								right: headline.direction === "rtl" ? headline.textPos.x : "",
+                              left: headline.direction === "ltr" ? headline.textPos.x : "auto",
+								right: headline.direction === "rtl" ? headline.textPos.x : "auto",
                               top: headline.textPos.y + (headline.sidelineOffset || 0),
                               height: headline.sideline.height || 0,
                               width: headline.sideline.width,
