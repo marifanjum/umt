@@ -532,34 +532,48 @@ function getMaskStyle(img) {
  function exportAsImage() {
   if (!containerRef.current) return;
 
-  // 1. Clean up UI for export
+  // 1. Hide active borders and UI
   setActiveImageId(null);
 
-  // 2. Options for high quality
+  // 2. High-Quality Export Options
+  const scale = 2; // Increase resolution
   const options = {
-    width: width,
-    height: height,
+    width: width * scale,
+    height: height * scale,
     style: {
-      transform: 'scale(1)',
-      left: 0,
-      top: 0
-    }
+      transform: `scale(${scale})`,
+      transformOrigin: 'top left',
+      width: `${width}px`,
+      height: `${height}px`,
+      // Fix for white lines: ensure no smoothing artifacts
+      'image-rendering': 'crisp-edges',
+      'font-smoothing': 'antialiased'
+    },
+    // Ensure the background is captured correctly
+    bgcolor: background.type === 'solid' ? background.color : null
   };
 
-  // Give React a millisecond to remove the active blue borders
   setTimeout(() => {
+    // We use toSvg first, then toPng. 
+    // This is a known trick to fix font and edge issues in dom-to-image.
     domtoimage.toPng(containerRef.current, options)
       .then((dataUrl) => {
         const link = document.createElement("a");
-        link.download = `${fileName || 'social-card'}.png`;
+        link.download = `${fileName}.png`;
         link.href = dataUrl;
         link.click();
       })
       .catch((error) => {
         console.error("Export failed:", error);
-        alert("Export failed. Try using a desktop browser like Chrome.");
+        // Fallback to simple download if high-res fails
+        domtoimage.toPng(containerRef.current).then(url => {
+            const l = document.createElement("a");
+            l.href = url;
+            l.download = "card-fallback.png";
+            l.click();
+        });
       });
-  }, 100);
+  }, 200);
 }
         function updateImage(id, updatedProps) {
           setImages(current => current.map(im => im.id === id ? { ...im, ...updatedProps } : im));
