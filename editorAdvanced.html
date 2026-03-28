@@ -13,6 +13,7 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+	
 	  
 
   </head>
@@ -47,6 +48,9 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
         const [presets, setPresets] = React.useState({});
         const [currentPresetName, setCurrentPresetName] = useState(null);
 
+
+
+
         // Load presets from JSON file
         useEffect(() => {
           fetch('presets.json')
@@ -60,6 +64,9 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
               console.error("Failed to load presets.json", err);
             });
         }, []);
+		
+		
+		
 
 
         function loadPreset(name) {
@@ -333,35 +340,90 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
 }, [headlines]);
 
         function onImageUpload(e) {
-          const files = e.target.files;
-          if (!files) return;
-        
-          const newImages = Array.from(files).map((file, index) => {
-            const img = new Image();
-            img.src = URL.createObjectURL(file);
-            return new Promise((resolve) => {
-              img.onload = () => {
-                const newImg = {
-                  id: Date.now() + index,
-                  src: img.src,
-                  x: 0,
-                  y: 0,
-                  scale: 1,
-                  zIndex: images.length + index,
-                  borderEnabled: false,
-                  fitMode: { top: false, right: false, bottom: false, left: false },
-                  originalWidth: img.naturalWidth,
-                  originalHeight: img.naturalHeight,
-                };
-                resolve(newImg);
-              };
-            });
-          });
-        
-          Promise.all(newImages).then(resolvedImages => {
-            setImages([...images, ...resolvedImages]);
-          });
-        }
+  const files = e.target.files;
+  if (!files) return;
+
+  const newImages = Array.from(files).map((file, index) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    return new Promise((resolve) => {
+      img.onload = () => {
+        const newImg = {
+          id: Date.now() + index,
+          src: img.src,
+          x: 0,
+          y: 0,
+          scale: 1,
+          zIndex: images.length + index,
+          borderEnabled: false,
+          fitMode: { top: false, right: false, bottom: false, left: false },
+          originalWidth: img.naturalWidth,
+          originalHeight: img.naturalHeight,
+          // New mask configuration for the masking functionality
+          mask: {
+            enabled: false,
+            shape: 'circle', // 'circle', 'oval', or 'square'
+            feather: 20,     // Controls the softness of the edges
+            x: 50,           // X position of the mask in percentage (0-100)
+            y: 50,           // Y position of the mask in percentage (0-100)
+            scale: 40        // Size of the mask in percentage
+          }
+        };
+        resolve(newImg);
+      };
+    });
+  });
+
+  Promise.all(newImages).then(resolvedImages => {
+    setImages([...images, ...resolvedImages]);
+  });
+}
+
+function getMaskStyle(img) {
+  if (!img.mask || !img.mask.enabled) return {};
+  
+  const { shape, feather, x, y, scale } = img.mask;
+  
+  // We use the smaller dimension as a base to keep the mask 
+  // from stretching on non-square images.
+  const baseDim = Math.min(img.originalWidth, img.originalHeight);
+  const maskSizePx = (baseDim * scale) / 100;
+  const featherPx = (baseDim * feather) / 200; // Softness tied to image size
+
+  let maskImage = '';
+
+  if (shape === 'circle' || shape === 'oval') {
+    // To keep it a perfect circle, we use 'circle' keyword and 'px' for size
+    const shapeType = shape === 'circle' ? 'circle' : 'ellipse';
+    maskImage = `radial-gradient(${shapeType} ${maskSizePx}px at ${x}% ${y}%, black ${maskSizePx - featherPx}px, transparent ${maskSizePx + featherPx}px)`;
+  } 
+  else if (shape === 'square') {
+    // For the square, we calculate the edges in percentages relative to the movement
+    const left = x - scale/2;
+    const right = x + scale/2;
+    const top = y - scale/2;
+    const bottom = y + scale/2;
+    const f = feather / 2;
+
+    maskImage = `linear-gradient(to right, transparent ${left - f}%, black ${left + f}%, black ${right - f}%, transparent ${right + f}%), 
+                 linear-gradient(to bottom, transparent ${top - f}%, black ${top + f}%, black ${bottom - f}%, transparent ${bottom + f}%)`;
+    
+    return { 
+      WebkitMaskImage: maskImage, 
+      WebkitMaskComposite: 'source-in', 
+      maskComposite: 'intersect' 
+    };
+  }
+
+  return {
+    WebkitMaskImage: maskImage,
+    maskImage: maskImage,
+    // This prevents the mask from shifting/stretching when the image moves
+    WebkitMaskRepeat: 'no-repeat',
+    maskRepeat: 'no-repeat'
+  };
+}
+
 
         function onBackgroundUpload(e) {
           const file = e.target.files[0];
@@ -982,7 +1044,48 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                                         </label>
                                     </div>
                                 </div>
+								
                             </div>
+							
+							<div className="mt-4 border-t pt-2">
+  <label className="flex items-center gap-2 font-semibold text-sm">
+    <input 
+      type="checkbox" 
+      checked={img.mask?.enabled} 
+      onChange={e => updateImage(img.id, { mask: { ...img.mask, enabled: e.target.checked } })}
+    />
+    Enable Image Mask
+  </label>
+  
+  {img.mask?.enabled && (
+    <div className="space-y-2 mt-2 pl-4 border-l-2 border-blue-200">
+      <select 
+        value={img.mask.shape} 
+        onChange={e => updateImage(img.id, { mask: { ...img.mask, shape: e.target.value } })}
+        className="w-full text-xs border p-1 rounded"
+      >
+        <option value="circle">Circle</option>
+        <option value="oval">Oval</option>
+        <option value="square">Square</option>
+      </select>
+      
+      <div className="grid grid-cols-2 gap-2 text-[10px] uppercase text-gray-500">
+        <label>Size
+          <input type="range" min="5" max="100" value={img.mask.scale} onChange={e => updateImage(img.id, { mask: { ...img.mask, scale: parseInt(e.target.value) } })} className="w-full"/>
+        </label>
+        <label>Feather
+          <input type="range" min="0" max="50" value={img.mask.feather} onChange={e => updateImage(img.id, { mask: { ...img.mask, feather: parseInt(e.target.value) } })} className="w-full"/>
+        </label>
+        <label>Move X
+          <input type="range" min="0" max="100" value={img.mask.x} onChange={e => updateImage(img.id, { mask: { ...img.mask, x: parseInt(e.target.value) } })} className="w-full"/>
+        </label>
+        <label>Move Y
+          <input type="range" min="0" max="100" value={img.mask.y} onChange={e => updateImage(img.id, { mask: { ...img.mask, y: parseInt(e.target.value) } })} className="w-full"/>
+        </label>
+      </div>
+    </div>
+  )}
+</div>
 
 
                           </div>
@@ -1074,7 +1177,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
 {/* Lock position option */}
 {vignette.show && (
   <label className="flex items-center mt-1">
-    <input
+    <inputMas
       type="checkbox"
       checked={vignette.locked}
       disabled={!!vignette.src} // auto-locked if using base64
@@ -1300,6 +1403,7 @@ sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, colo
                             border: img.borderEnabled
                               ? `${globalBorderSize}px solid ${globalBorderColor}`
                               : "none",
+							  ...getMaskStyle(img)
                           }}
                         />
                       </div>
