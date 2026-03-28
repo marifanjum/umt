@@ -529,68 +529,48 @@ function getMaskStyle(img) {
           window.addEventListener("touchend", onUp);
         }
 
-        function exportAsImage() {
+        
+function exportAsImage() {
   if (!containerRef.current) return;
-
-  // 1. Deselect any active image to remove the blue border before export
   setActiveImageId(null);
 
   setTimeout(() => {
-    const textOffset = -40; 
-    
     html2canvas(containerRef.current, {
       useCORS: true,
-      scale: 2, // Increased scale to 2 for higher quality export
-      scrollY: -window.scrollY,
+      scale: 2, 
+      backgroundColor: null,
       onclone: (clonedDoc) => {
-        // FIX 1: Handle Text Offsets (Your existing logic)
-        const textElements = clonedDoc.querySelectorAll('[data-headline="true"]');
-        textElements.forEach(el => {
-          const currentTop = parseFloat(el.style.top || "0");
-          el.style.top = (currentTop + textOffset) + "px";
-        });
-
-        // FIX 2: Handle Image Masks for Export
-        // We find all images in the cloned document
-        const clonedImages = clonedDoc.querySelectorAll('img[alt="Uploaded Image"]');
+        const imagesToMask = clonedDoc.querySelectorAll('img[alt="Uploaded Image"]');
         
         images.forEach((imgData, index) => {
           if (imgData.mask && imgData.mask.enabled) {
-            const targetImg = clonedImages[index];
-            if (!targetImg) return;
+            const targetImg = imagesToMask[index];
+            const { shape, feather, x, y, scale } = imgData.mask;
 
-            // html2canvas handles clip-path better than mask-image
-            // We convert your mask settings into a basic circle/ellipse clip-path for the export
-            const { shape, x, y, scale } = imgData.mask;
-            if (shape === 'circle' || shape === 'oval') {
-              const radiusX = scale;
-              const radiusY = shape === 'circle' ? scale : (scale * 1.5); // Approximation for oval
-              targetImg.style.clipPath = `ellipse(${radiusX}% ${radiusY}% at ${x}% ${y}%)`;
-              targetImg.style.webkitClipPath = `ellipse(${radiusX}% ${radiusY}% at ${x}% ${y}%)`;
-            } else if (shape === 'square') {
-              const size = scale;
-              targetImg.style.clipPath = `inset(${y - size/2}% ${100 - (x + size/2)}% ${100 - (y + size/2)}% ${x - size/2}%)`;
-            }
+            // We apply a high-quality CSS filter that html2canvas handles better than masks
+            // This creates a "vignette" effect on the image itself
+            const shapeType = shape === 'circle' ? 'circle' : 'ellipse';
+            const f = feather / 2;
             
-            // Remove the mask-image style during export to prevent conflicts
-            targetImg.style.maskImage = 'none';
-            targetImg.style.WebkitMaskImage = 'none';
+            // Instead of mask-image, we use a clip-path with a blur filter
+            targetImg.style.webkitClipPath = `${shapeType}(${scale}% at ${x}% ${y}%)`;
+            targetImg.style.clipPath = `${shapeType}(${scale}% at ${x}% ${y}%)`;
+            
+            if (feather > 0) {
+              // This simulates the feathering during export
+              targetImg.style.filter = `blur(${feather/5}px)`; 
+            }
           }
         });
       }
-    })
-    .then((canvas) => {
+    }).then(canvas => {
       const link = document.createElement("a");
-      link.download = (fileName && fileName.trim() ? fileName.trim() : "social-card") + ".png";
+      link.download = `${fileName}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    })
-    .catch((err) => {
-      console.error("Export failed:", err);
     });
-  }, 100); // Small delay to ensure state updates
+  }, 100);
 }
-
         function updateImage(id, updatedProps) {
           setImages(current => current.map(im => im.id === id ? { ...im, ...updatedProps } : im));
         }
