@@ -1,4 +1,477 @@
-`ion();
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Social Card Generator</title>
+	  <link href="
+https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
+" rel="stylesheet">
+	 <link href="https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2&family=Gulzar&family=Montserrat&family=Noto+Sans+Arabic:wght@100..900;wdth@62.5..100&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+	
+	  
+
+  </head>
+  <body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      function SocialCardGenerator() {
+        const { useState, useRef, useEffect } = React;
+        const containerRef = useRef(null);
+	 
+		  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+  try {
+    const savedAuth = localStorage.getItem('socialCardAuth');
+    return savedAuth ? JSON.parse(savedAuth) : false;
+  } catch (e) {
+    console.error("Failed to load authentication status from localStorage", e);
+    return false;
+  }
+});
+        // State variables for collapsing sections
+        const [isBackgroundCollapsed, setIsBackgroundCollapsed] = useState(false);
+        const [isPresetsCollapsed, setIsPresetsCollapsed] = useState(false);
+        const [isImagesCollapsed, setIsImagesCollapsed] = useState(false);
+        const [isVignetteCollapsed, setIsVignetteCollapsed] = useState(false);
+        const [isLogoCollapsed, setIsLogoCollapsed] = useState(false);
+        const [isCanvasCollapsed, setIsCanvasCollapsed] = useState(false);
+        const [isFileNameCollapsed, setIsFileNameCollapsed] = useState(false);
+        const [vignette, setVignette] = useState({ show: false, x: 0, y: 0, scale: 1 });
+        
+        const [DEFAULT_PRESETS, setDEFAULT_PRESETS] = useState({});
+        const [presets, setPresets] = React.useState({});
+        const [currentPresetName, setCurrentPresetName] = useState(null);
+
+
+useEffect(() => {
+    const bc = new BroadcastChannel('social_card_transfer');
+
+    bc.onmessage = (event) => {
+        if (event.data.type === 'ADD_IMAGE') {
+            const img = new Image();
+            img.src = event.data.imageSrc;
+            img.onload = () => {
+                const newImg = {
+                    id: Date.now(),
+                    src: img.src,
+                    x: 50, y: 50, scale: 1,
+                    zIndex: images.length + 1,
+                    borderEnabled: false,
+                    fitMode: { top: false, right: false, bottom: false, left: false },
+                    originalWidth: img.naturalWidth,
+                    originalHeight: img.naturalHeight,
+                    mask: { enabled: false, shape: 'circle', feather: 20, x: 50, y: 50, scale: 40 }
+                };
+                setImages(prev => [...prev, newImg]);
+            };
+        }
+    };
+
+    return () => bc.close(); // Cleanup when tab closes
+}, [images.length]);
+
+        // Load presets from JSON file
+        useEffect(() => {
+          fetch('presets.json')
+            .then(response => response.json())
+            .then(data => {
+              setDEFAULT_PRESETS(data);
+              const saved = localStorage.getItem("userPresets");
+              setPresets({ ...data, ...(saved ? JSON.parse(saved) : {}) });
+            })
+            .catch(err => {
+              console.error("Failed to load presets.json", err);
+            });
+        }, []);
+		
+		
+		
+
+
+        function loadPreset(name) {
+          const preset = presets[name];
+          if (!preset) {
+            alert("Preset not found");
+            return;
+          }
+
+          setHeadlines(preset.headlines || []);
+          setImages(preset.images.map(img => ({
+              ...img,
+              scale: img.scale !== undefined ? img.scale : 1,
+              fitMode: img.fitMode || { top: false, right: false, bottom: false, left: false },
+              stretchEnabled: img.stretchEnabled || false,
+          })) || []);
+          if (preset.width) setWidth(preset.width);
+          if (preset.height) setHeight(preset.height);
+          if (preset.logo) setLogo(preset.logo);
+          if (preset.fileName) setFileName(preset.fileName);
+          if (preset.vignette !== undefined) setVignette(preset.vignette);
+          if (preset.globalBorderColor) setGlobalBorderColor(preset.globalBorderColor);
+          if (preset.globalBorderSize !== undefined) setGlobalBorderSize(preset.globalBorderSize);
+          if (preset.background) {
+            setBackground(preset.background);
+          }
+          if (preset.draggableHeadlines !== undefined) {
+              setDraggableHeadlines(preset.draggableHeadlines);
+          } else {
+              setDraggableHeadlines(true);
+          }
+
+          setCurrentPresetName(name);
+
+          alert(`${name} preset loaded!`);
+        }
+
+        function savePreset(name) {
+          if (!name) {
+            alert("Please enter a preset name");
+            return;
+          }
+
+          const newPreset = {
+            headlines, 
+            images: images.map(img => ({
+                id: img.id,
+                src: img.src,
+                x: img.x,
+                y: img.y,
+                scale: img.scale,
+                zIndex: img.zIndex,
+                borderEnabled: img.borderEnabled,
+                stretchEnabled: img.stretchEnabled,
+                fitMode: img.fitMode,
+            })),
+            width, height, logo, fileName, vignette,
+            globalBorderColor, globalBorderSize, background,
+            draggableHeadlines
+          };
+
+          const updatedPresets = { ...presets, [name]: newPreset };
+          setPresets(updatedPresets);
+          localStorage.setItem("userPresets", JSON.stringify(updatedPresets));
+
+          alert(`Preset "${name}" saved!`);
+        }
+
+        function deletePreset(name) {
+          if (!name) {
+            alert("Please select a preset to delete");
+            return;
+          }
+          if (DEFAULT_PRESETS[name]) {
+            alert("Default presets cannot be deleted");
+            return;
+          }
+
+          const updatedPresets = { ...presets };
+          delete updatedPresets[name];
+          setPresets(updatedPresets);
+          localStorage.setItem("userPresets", JSON.stringify(updatedPresets));
+
+          alert(`Preset "${name}" deleted!`);
+        }
+
+        function resetPresets() {
+          if (!window.confirm("This will delete all your saved presets and restore only the defaults. Continue?")) {
+            return;
+          }
+          setPresets(DEFAULT_PRESETS);
+          localStorage.removeItem("userPresets");
+          alert("Presets reset to default!");
+        }
+
+        function exportPresets() {
+          const json = JSON.stringify(presets, null, 2);
+          navigator.clipboard.writeText(json)
+            .then(() => alert("All presets copied to clipboard!"))
+            .catch(err => console.error("Clipboard copy failed", err));
+        }
+
+        function importPresets() {
+          const json = prompt("Paste presets JSON here:");
+          if (!json) return;
+          try {
+            const parsed = JSON.parse(json);
+            if (typeof parsed !== "object") throw new Error("Invalid format");
+
+            const updatedPresets = { ...DEFAULT_PRESETS, ...parsed };
+            setPresets(updatedPresets);
+            localStorage.setItem("userPresets", JSON.stringify(parsed));
+
+            alert("Presets imported successfully!");
+          } catch (e) {
+            alert("Invalid presets JSON");
+            console.error("Import failed:", e);
+          }
+        }
+
+        const [globalBorderColor, setGlobalBorderColor] = useState("#ffffff");
+        const [globalBorderSize, setGlobalBorderSize] = useState(4);
+        const [images, setImages] = useState([]);
+        const [activeImageId, setActiveImageId] = useState(null);
+        const [width, setWidth] = useState(1080);
+        const [height, setHeight] = useState(1080);
+        const [logo, setLogo] = useState({ show: true, position: "top-right" });
+        const [fileName, setFileName] = useState("social-card");
+        const [background, setBackground] = useState({
+          type: 'solid',
+          color: '#000000',
+          gradient: {
+            color1: '#ffffff',
+            color2: '#000000',
+            direction: 'to bottom right'
+          },
+          imageSrc: 'bg.png'
+        });
+		  
+        const [headlines, setHeadlines] = useState([{
+          id: Date.now(),
+          text: "Headline here",
+          fontSize: 90,
+          lineHeight: 1.2,
+          fontFamily: "JameelNooriNastaliq",
+          textColor: "#ffffff",
+          textPos: { x: 100, y: 200 },
+          direction: "rtl",
+          textAlign: "right",
+          sidelineOffset: 0,
+          shadow: { enabled: true, offsetX: 2, offsetY: 2, blur: 6, color: "rgba(0,0,0,0.6)" },
+          stroke: { enabled: false, width: 1, color: "#000000" },
+          // when creating or adding initial headlines
+			sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, color: "#ff0000", opacity: 1 },
+		  sidelineOffset: 0,
+          isCollapsed: false,
+		  width: 800,
+        }]);
+        const [expandedHeadlineId, setExpandedHeadlineId] = useState(null);
+        const headlineRefs = useRef({});
+        const [draggableHeadlines, setDraggableHeadlines] = useState(true);
+
+        function addHeadline() {
+          const newHeadline = {
+            id: Date.now(),
+            text: "New Headline",
+            fontSize: 60,
+            lineHeight: 1.2,
+            fontFamily: "JameelNooriNastaliq",
+            textColor: "#ffffff",
+            textPos: { x: 100, y: 300 },
+            direction: "rtl",
+            textAlign: "right",
+            sidelineOffset: 0,
+            shadow: { enabled: true, offsetX: 2, offsetY: 2, blur: 6, color: "rgba(0,0,0,0.6)" },
+            stroke: { enabled: false, width: 1, color: "#000000" },
+            // when creating or adding initial headlines
+sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, color: "#ff0000", opacity: 1 },
+			 sidelineOffset: 0,
+            isCollapsed: false,
+			width: 800,
+          };
+          setHeadlines([...headlines, newHeadline]);
+        }
+
+        function updateHeadline(id, updatedProps) {
+          setHeadlines(current => current.map(h => h.id === id ? { ...h, ...updatedProps } : h));
+        }
+
+        function deleteHeadline(id) {
+          setHeadlines(current => current.filter(h => h.id !== id));
+          if (expandedHeadlineId === id) {
+            setExpandedHeadlineId(null);
+          }
+        }
+
+		  useEffect(() => {
+  try {
+    localStorage.setItem('socialCardAuth', JSON.stringify(isAuthenticated));
+  } catch (e) {
+    console.error("Failed to save authentication status to localStorage", e);
+  }
+}, [isAuthenticated]);
+		  
+
+        useEffect(() => {
+          try {
+            const savedData = localStorage.getItem('socialCardData');
+            if (savedData) {
+              const parsedData = JSON.parse(savedData);
+              if (parsedData.headlines) setHeadlines(parsedData.headlines);
+              if (parsedData.images) setImages(parsedData.images.map(img => ({
+                ...img,
+                fitMode: img.fitMode || { top: false, right: false, bottom: false, left: false },
+                stretchEnabled: img.stretchEnabled || false,
+              })));
+              if (parsedData.width) setWidth(parsedData.width);
+              if (parsedData.height) setHeight(parsedData.height);
+              if (parsedData.logo) setLogo(parsedData.logo);
+              if (parsedData.fileName) setFileName(parsedData.fileName);
+              if (parsedData.background) setBackground(parsedData.background);
+            }
+          } catch (e) {
+            console.error("Failed to load data from localStorage", e);
+          }
+        }, []);
+
+        useEffect(() => {
+          const dataToSave = {
+            headlines, images, width, height, logo, fileName, background
+          };
+          try {
+            localStorage.setItem('socialCardData', JSON.stringify(dataToSave));
+          } catch (e) {
+            console.error("Failed to save data to localStorage", e);
+          }
+        }, [headlines, images, width, height, logo, fileName, background]);
+
+        useEffect(() => {
+          const handleBeforeUnload = (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+          };
+          window.addEventListener('beforeunload', handleBeforeUnload);
+
+          return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+          };
+        }, []);
+
+        useEffect(() => {
+  headlines.forEach(h => {
+    const el = headlineRefs.current[h.id];
+    if (!el) return;
+
+    const measured = el.offsetHeight;
+
+    // only auto-set if autosizing is enabled (autoHeight true or undefined)
+    const wantsAuto = h.sideline?.autoHeight !== false; // treat undefined as true
+
+    if (wantsAuto) {
+      // Write measured height only when different (and only if measured is a valid number)
+      if (typeof measured === "number" && h.sideline?.height !== measured) {
+        updateHeadline(h.id, {
+          sideline: { ...h.sideline, height: measured, autoHeight: true }
+        });
+      }
+    }
+  });
+  // note: intentionally not including updateHeadline in deps list because it's stable in your code.
+}, [headlines]);
+
+        function onImageUpload(e) {
+  const files = e.target.files;
+  if (!files) return;
+
+  const newImages = Array.from(files).map((file, index) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    return new Promise((resolve) => {
+      img.onload = () => {
+        const newImg = {
+          id: Date.now() + index,
+          src: img.src,
+          x: 0,
+          y: 0,
+          scale: 1,
+          zIndex: images.length + index,
+          borderEnabled: false,
+          fitMode: { top: false, right: false, bottom: false, left: false },
+          originalWidth: img.naturalWidth,
+          originalHeight: img.naturalHeight,
+          // New mask configuration for the masking functionality
+          mask: {
+            enabled: false,
+            shape: 'circle', // 'circle', 'oval', or 'square'
+            feather: 20,     // Controls the softness of the edges
+            x: 50,           // X position of the mask in percentage (0-100)
+            y: 50,           // Y position of the mask in percentage (0-100)
+            scale: 40        // Size of the mask in percentage
+          }
+        };
+        resolve(newImg);
+      };
+    });
+  });
+
+  Promise.all(newImages).then(resolvedImages => {
+    setImages([...images, ...resolvedImages]);
+  });
+}
+
+function getMaskStyle(img) {
+  if (!img.mask || !img.mask.enabled) return {};
+  
+  const { shape, feather, x, y, scale } = img.mask;
+  
+  // We use the smaller dimension as a base to keep the mask 
+  // from stretching on non-square images.
+  const baseDim = Math.min(img.originalWidth, img.originalHeight);
+  const maskSizePx = (baseDim * scale) / 100;
+  const featherPx = (baseDim * feather) / 200; // Softness tied to image size
+
+  let maskImage = '';
+
+  if (shape === 'circle' || shape === 'oval') {
+    // To keep it a perfect circle, we use 'circle' keyword and 'px' for size
+    const shapeType = shape === 'circle' ? 'circle' : 'ellipse';
+    maskImage = `radial-gradient(${shapeType} ${maskSizePx}px at ${x}% ${y}%, black ${maskSizePx - featherPx}px, transparent ${maskSizePx + featherPx}px)`;
+  } 
+  else if (shape === 'square') {
+    // For the square, we calculate the edges in percentages relative to the movement
+    const left = x - scale/2;
+    const right = x + scale/2;
+    const top = y - scale/2;
+    const bottom = y + scale/2;
+    const f = feather / 2;
+
+    maskImage = `linear-gradient(to right, transparent ${left - f}%, black ${left + f}%, black ${right - f}%, transparent ${right + f}%), 
+                 linear-gradient(to bottom, transparent ${top - f}%, black ${top + f}%, black ${bottom - f}%, transparent ${bottom + f}%)`;
+    
+    return { 
+      WebkitMaskImage: maskImage, 
+      WebkitMaskComposite: 'source-in', 
+      maskComposite: 'intersect' 
+    };
+  }
+
+  return {
+    WebkitMaskImage: maskImage,
+    maskImage: maskImage,
+    // This prevents the mask from shifting/stretching when the image moves
+    WebkitMaskRepeat: 'no-repeat',
+    maskRepeat: 'no-repeat'
+  };
+}
+
+
+        function onBackgroundUpload(e) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              setBackground({
+                ...background,
+                type: 'image',
+                imageSrc: event.target.result
+              });
+            };
+            reader.readAsDataURL(file);
+          }
+        }
+
+        function getCoords(e) {
+          return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+        }
+
+        function startDragImage(e, id) {
+          e.preventDefault();
+          e.stopPropagation();
           setActiveImageId(id);
           const { x: startX, y: startY } = getCoords(e);
           const img = images.find(im => im.id === id);
@@ -640,7 +1113,6 @@
 </div>
 
 
-
                           </div>
                         ))}
 
@@ -730,7 +1202,7 @@
 {/* Lock position option */}
 {vignette.show && (
   <label className="flex items-center mt-1">
-    <input
+    <inputMas
       type="checkbox"
       checked={vignette.locked}
       disabled={!!vignette.src} // auto-locked if using base64
