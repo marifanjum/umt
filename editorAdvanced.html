@@ -530,41 +530,66 @@ function getMaskStyle(img) {
         }
 
         function exportAsImage() {
-          if (!containerRef.current) return;
+  if (!containerRef.current) return;
 
-          setActiveImageId(null);
+  // 1. Deselect any active image to remove the blue border before export
+  setActiveImageId(null);
 
-          
-          
-         setTimeout(() => {
-  const textOffset = -40; // adjust between -4 to -7 for perfect match
-  html2canvas(containerRef.current, {
-    useCORS: true,
-    scale: 1,
-    scrollY: -window.scrollY,
-    onclone: (clonedDoc) => {
-      // Apply offset only to the text, not sidelines
-      const textElements = clonedDoc.querySelectorAll('[data-headline="true"]');
-      textElements.forEach(el => {
-        // Move text slightly upward
-        const currentTop = parseFloat(el.style.top || "0");
-        el.style.top = (currentTop + textOffset) + "px";
-      });
-    }
-  })
+  setTimeout(() => {
+    const textOffset = -40; 
+    
+    html2canvas(containerRef.current, {
+      useCORS: true,
+      scale: 2, // Increased scale to 2 for higher quality export
+      scrollY: -window.scrollY,
+      onclone: (clonedDoc) => {
+        // FIX 1: Handle Text Offsets (Your existing logic)
+        const textElements = clonedDoc.querySelectorAll('[data-headline="true"]');
+        textElements.forEach(el => {
+          const currentTop = parseFloat(el.style.top || "0");
+          el.style.top = (currentTop + textOffset) + "px";
+        });
+
+        // FIX 2: Handle Image Masks for Export
+        // We find all images in the cloned document
+        const clonedImages = clonedDoc.querySelectorAll('img[alt="Uploaded Image"]');
+        
+        images.forEach((imgData, index) => {
+          if (imgData.mask && imgData.mask.enabled) {
+            const targetImg = clonedImages[index];
+            if (!targetImg) return;
+
+            // html2canvas handles clip-path better than mask-image
+            // We convert your mask settings into a basic circle/ellipse clip-path for the export
+            const { shape, x, y, scale } = imgData.mask;
+            if (shape === 'circle' || shape === 'oval') {
+              const radiusX = scale;
+              const radiusY = shape === 'circle' ? scale : (scale * 1.5); // Approximation for oval
+              targetImg.style.clipPath = `ellipse(${radiusX}% ${radiusY}% at ${x}% ${y}%)`;
+              targetImg.style.webkitClipPath = `ellipse(${radiusX}% ${radiusY}% at ${x}% ${y}%)`;
+            } else if (shape === 'square') {
+              const size = scale;
+              targetImg.style.clipPath = `inset(${y - size/2}% ${100 - (x + size/2)}% ${100 - (y + size/2)}% ${x - size/2}%)`;
+            }
+            
+            // Remove the mask-image style during export to prevent conflicts
+            targetImg.style.maskImage = 'none';
+            targetImg.style.WebkitMaskImage = 'none';
+          }
+        });
+      }
+    })
     .then((canvas) => {
       const link = document.createElement("a");
-      link.download =
-        (fileName && fileName.trim() ? fileName.trim() : "social-card") + ".png";
+      link.download = (fileName && fileName.trim() ? fileName.trim() : "social-card") + ".png";
       link.href = canvas.toDataURL("image/png");
       link.click();
     })
     .catch((err) => {
-      console.log("export failed:", err);
+      console.error("Export failed:", err);
     });
-}, 0);
-
-        }
+  }, 100); // Small delay to ensure state updates
+}
 
         function updateImage(id, updatedProps) {
           setImages(current => current.map(im => im.id === id ? { ...im, ...updatedProps } : im));
