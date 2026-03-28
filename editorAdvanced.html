@@ -12,8 +12,7 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-	
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.5.0/dist/dom-to-image-more.min.js"></script>	
 	  
 
   </head>
@@ -530,45 +529,36 @@ function getMaskStyle(img) {
         }
 
         
-function exportAsImage() {
+ function exportAsImage() {
   if (!containerRef.current) return;
+
+  // 1. Clean up UI for export
   setActiveImageId(null);
 
-  setTimeout(() => {
-    html2canvas(containerRef.current, {
-      useCORS: true,
-      scale: 2, 
-      backgroundColor: null,
-      onclone: (clonedDoc) => {
-        const imagesToMask = clonedDoc.querySelectorAll('img[alt="Uploaded Image"]');
-        
-        images.forEach((imgData, index) => {
-          if (imgData.mask && imgData.mask.enabled) {
-            const targetImg = imagesToMask[index];
-            const { shape, feather, x, y, scale } = imgData.mask;
+  // 2. Options for high quality
+  const options = {
+    width: width,
+    height: height,
+    style: {
+      transform: 'scale(1)',
+      left: 0,
+      top: 0
+    }
+  };
 
-            // We apply a high-quality CSS filter that html2canvas handles better than masks
-            // This creates a "vignette" effect on the image itself
-            const shapeType = shape === 'circle' ? 'circle' : 'ellipse';
-            const f = feather / 2;
-            
-            // Instead of mask-image, we use a clip-path with a blur filter
-            targetImg.style.webkitClipPath = `${shapeType}(${scale}% at ${x}% ${y}%)`;
-            targetImg.style.clipPath = `${shapeType}(${scale}% at ${x}% ${y}%)`;
-            
-            if (feather > 0) {
-              // This simulates the feathering during export
-              targetImg.style.filter = `blur(${feather/5}px)`; 
-            }
-          }
-        });
-      }
-    }).then(canvas => {
-      const link = document.createElement("a");
-      link.download = `${fileName}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    });
+  // Give React a millisecond to remove the active blue borders
+  setTimeout(() => {
+    domtoimage.toPng(containerRef.current, options)
+      .then((dataUrl) => {
+        const link = document.createElement("a");
+        link.download = `${fileName || 'social-card'}.png`;
+        link.href = dataUrl;
+        link.click();
+      })
+      .catch((error) => {
+        console.error("Export failed:", error);
+        alert("Export failed. Try using a desktop browser like Chrome.");
+      });
   }, 100);
 }
         function updateImage(id, updatedProps) {
