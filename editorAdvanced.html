@@ -1452,29 +1452,41 @@ function getMaskStyle(img) {
                     )}
 
                     {/* Multiple Headlines */}
-                    {headlines.map(headline => (
-                      <React.Fragment key={headline.id}>
-                        {headline.sideline.show && (
-                          <div
-                            className="sideline-clone"
-                            style={{
-                              position: "absolute",
-                              left: headline.textPos.x,
-right: "auto",
-                              top: headline.textPos.y + (headline.sidelineOffset || 0),
-                              height: headline.sideline.height || 0,
-                              width: headline.sideline.width,
-                              background: headline.sideline.color,
-                              opacity: headline.sideline.opacity,
-                              pointerEvents: "none",
-                              zIndex: 200,
-                            }}
-                          />
-                        )}
-                       
-                      <div
-  data-headline="true"
-  ref={el => headlineRefs.current[headline.id] = el}
+                    {headlines.map(headline => {
+  // Calculate the horizontal position of the sideline
+  const isRTL = headline.direction === "rtl";
+  const headlineWidth = headline.width || 800;
+  const sidelineWidth = headline.sideline.width || 30;
+  const gap = headline.sideline.gap || 60;
+
+  // If RTL, the sideline should be on the right side of the text block
+  // If LTR, it stays on the left (at the x position)
+  const sidelineX = isRTL 
+    ? headline.textPos.x + headlineWidth + gap 
+    : headline.textPos.x - sidelineWidth - gap;
+
+  return (
+    <React.Fragment key={headline.id}>
+      {headline.sideline.show && (
+        <div
+          className="sideline-clone"
+          style={{
+            position: "absolute",
+            left: sidelineX, // Dynamically calculated X
+            top: headline.textPos.y + (headline.sidelineOffset || 0),
+            height: headline.sideline.height || 0,
+            width: sidelineWidth,
+            background: headline.sideline.color,
+            opacity: headline.sideline.opacity,
+            pointerEvents: "none",
+            zIndex: 200,
+          }}
+        />
+      )}
+      
+      <div
+        data-headline="true"
+        ref={el => headlineRefs.current[headline.id] = el}
   onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
   onTouchStart={canDragHeadlines ? e => startDragText(e, headline.id) : null}
   dir={headline.direction}
