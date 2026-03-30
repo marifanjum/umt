@@ -508,6 +508,26 @@ function getMaskStyle(img) {
 
 
 
+function duplicateHeadline(id) {
+  const original = headlines.find(h => h.id === id);
+  if (!original) return;
+
+  const duplicated = {
+    ...original,
+    id: Date.now(), // New unique ID
+    // Offset the position slightly so the user sees the copy
+    textPos: { 
+      x: original.textPos.x + 20, 
+      y: original.textPos.y + (original.fontSize * 1.5) // Places it directly below
+    }
+  };
+
+  setHeadlines([...headlines, duplicated]);
+  setExpandedHeadlineId(duplicated.id); // Automatically expand the new copy
+}
+
+
+
         function startDragVignette(e) {
           e.preventDefault();
           e.stopPropagation();
@@ -936,8 +956,11 @@ function getMaskStyle(img) {
                               <label className="text-sm">Color<input type="color" value={headline.stroke.color} onChange={e => updateHeadline(headline.id, { stroke: { ...headline.stroke, color: e.target.value } })} className="w-full border p-1 rounded" /></label>
                             </div>}
                           </div>
+						  
+						  
 
                           {/* Sideline Controls */}
+						  
                           <div className="mt-4">
                             <label className="flex items-center">
                               <input type="checkbox" checked={headline.sideline.show} onChange={e => updateHeadline(headline.id, { sideline: { ...headline.sideline, show: e.target.checked } })} />
@@ -977,8 +1000,20 @@ function getMaskStyle(img) {
                               <label className="block text-sm">Vertical offset<input type="number" value={headline.sidelineOffset} onChange={e => updateHeadline(headline.id, { sidelineOffset: parseInt(e.target.value) })} className="w-full border p-1 rounded mt-1" /></label>
                             </>}
                           </div>
-                          <button onClick={() => deleteHeadline(headline.id)} className="w-full bg-red-500 text-white py-1 rounded mt-2">Delete</button>
-                        </div>
+<div className="flex gap-2 mt-2">
+  <button 
+    onClick={() => duplicateHeadline(headline.id)} 
+    className="flex-1 bg-blue-500 text-white py-1 rounded"
+  >
+    Duplicate
+  </button>
+  <button 
+    onClick={() => deleteHeadline(headline.id)} 
+    className="flex-1 bg-red-500 text-white py-1 rounded"
+  >
+    Delete
+  </button>
+</div>                        </div>
                       )}
                     </div>
                   ))}
