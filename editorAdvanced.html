@@ -1451,99 +1451,78 @@ function getMaskStyle(img) {
                       />
                     )}
 
-                    {/* Multiple Headlines */}
-                    {headlines.map(headline => {
-  // Calculate the horizontal position of the sideline
-  const isRTL = headline.direction === "rtl";
-  const headlineWidth = headline.width || 800;
-  const sidelineWidth = headline.sideline.width || 30;
-  const gap = headline.sideline.gap || 60;
+{/* Multiple Headlines */}
+{headlines.map(headline => {
+    // 1. Logic to determine sideline X position
+    const isRTL = headline.direction === "rtl";
+    const headWidth = headline.width || 800;
+    const sWidth = (headline.sideline && headline.sideline.width) || 30;
+    const sGap = (headline.sideline && headline.sideline.gap) || 60;
 
-  // If RTL, the sideline should be on the right side of the text block
-  // If LTR, it stays on the left (at the x position)
-  const sidelineX = isRTL 
-    ? headline.textPos.x + headlineWidth + gap 
-    : headline.textPos.x - sidelineWidth - gap;
+    // If RTL (Urdu), place sideline on the right. If LTR, place on left.
+    const sidelineX = isRTL 
+        ? headline.textPos.x + headWidth + sGap 
+        : headline.textPos.x - sWidth - sGap;
 
-  return (
-    <React.Fragment key={headline.id}>
-      {headline.sideline.show && (
-        <div
-          className="sideline-clone"
-          style={{
-            position: "absolute",
-            left: sidelineX, // Dynamically calculated X
-            top: headline.textPos.y + (headline.sidelineOffset || 0),
-            height: headline.sideline.height || 0,
-            width: sidelineWidth,
-            background: headline.sideline.color,
-            opacity: headline.sideline.opacity,
-            pointerEvents: "none",
-            zIndex: 200,
-          }}
-        />
-      )}
-      
-      <div
-        data-headline="true"
-        ref={el => headlineRefs.current[headline.id] = el}
-  onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
-  onTouchStart={canDragHeadlines ? e => startDragText(e, headline.id) : null}
-  dir={headline.direction}
-  style={{
-    position: "absolute",
-
-    left: headline.textPos.x,   // FIX
-    top: headline.textPos.y,    // unchanged
-
-    fontSize: headline.fontSize,
-    lineHeight: headline.lineHeight,
-    color: headline.textColor,
-
-    textShadow: headline.shadow.enabled
-      ? `${headline.shadow.offsetX}px ${headline.shadow.offsetY}px ${headline.shadow.blur}px ${headline.shadow.color}`
-      : "none",
-
-    WebkitTextStroke: headline.stroke.enabled
-      ? `${headline.stroke.width}px ${headline.stroke.color}`
-      : "none",
-
-    whiteSpace: "pre-wrap",
-    width: headline.width ? `${headline.width}px` : "80%",
-    maxWidth: "100%",
-    textAlign: headline.textAlign,
-
-    cursor: canDragHeadlines ? "move" : "default",
-    zIndex: 200,
-
-    fontFamily:
-      headline.fontFamily.startsWith("Noto Sans Arabic")
-        ? "Noto Sans Arabic"
-        : headline.fontFamily,
-
-    fontWeight: "normal",
-    fontVariationSettings: "normal",
-
-    ...(headline.fontFamily === "Noto Sans Arabic Thin" && {
-      fontWeight: 100,
-    }),
-
-    ...(headline.fontFamily === "Noto Sans Arabic Condensed" && {
-      fontVariationSettings: `'wdth' 62.5`,
-    }),
-
-    ...(headline.fontFamily === "Noto Sans Arabic" && {
-      fontWeight: 400,
-    }),
-
-    // IMPORTANT FIX for Urdu layout
-    unicodeBidi: "plaintext",
-  }}
->
-  {headline.text}
-</div>
-                      </React.Fragment>
-                    ))}
+    return (
+        <React.Fragment key={headline.id}>
+            {/* Render the Sideline */}
+            {headline.sideline && headline.sideline.show && (
+                <div
+                    className="sideline-clone"
+                    style={{
+                        position: "absolute",
+                        left: sidelineX,
+                        top: headline.textPos.y + (headline.sidelineOffset || 0),
+                        height: headline.sideline.height || 0,
+                        width: sWidth,
+                        background: headline.sideline.color,
+                        opacity: headline.sideline.opacity,
+                        pointerEvents: "none",
+                        zIndex: 200,
+                    }}
+                />
+            )}
+            
+            {/* Render the Headline Text */}
+            <div
+                data-headline="true"
+                ref={el => headlineRefs.current[headline.id] = el}
+                onMouseDown={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+                onTouchStart={canDragHeadlines ? e => startDragText(e, headline.id) : null}
+                dir={headline.direction}
+                style={{
+                    position: "absolute",
+                    left: headline.textPos.x,
+                    top: headline.textPos.y,
+                    fontSize: headline.fontSize,
+                    lineHeight: headline.lineHeight,
+                    color: headline.textColor,
+                    textShadow: headline.shadow.enabled
+                        ? `${headline.shadow.offsetX}px ${headline.shadow.offsetY}px ${headline.shadow.blur}px ${headline.shadow.color}`
+                        : "none",
+                    WebkitTextStroke: headline.stroke.enabled
+                        ? `${headline.stroke.width}px ${headline.stroke.color}`
+                        : "none",
+                    whiteSpace: "pre-wrap",
+                    width: headWidth ? `${headWidth}px` : "80%",
+                    maxWidth: "100%",
+                    textAlign: headline.textAlign,
+                    cursor: canDragHeadlines ? "move" : "default",
+                    zIndex: 200,
+                    fontFamily: headline.fontFamily.startsWith("Noto Sans Arabic")
+                        ? "Noto Sans Arabic"
+                        : headline.fontFamily,
+                    fontWeight: headline.fontFamily === "Noto Sans Arabic Thin" ? 100 : "normal",
+                    fontVariationSettings: headline.fontFamily === "Noto Sans Arabic Condensed" ? "'wdth' 62.5" : "normal",
+                    unicodeBidi: "plaintext",
+                }}
+            >
+                {headline.text}
+            </div>
+        </React.Fragment>
+    );
+})}
                   </div>
                 </div>
               </div>
