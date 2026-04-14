@@ -223,7 +223,19 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
 			sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, color: "#ff0000", opacity: 1 },
 		  sidelineOffset: 0,
           isCollapsed: false,
-		  width: 800,
+		  width: 900,
+		  // Add this inside your default headline object and addHeadline function
+			border: {
+		  enabled: false,
+		  color: "#ffffff",
+		  width: 2,
+		  radius: 0,
+		  style: "solid", // New default property
+		  top: true,
+		  right: true,
+		  bottom: true,
+		  left: true
+		},
         }]);
         const [expandedHeadlineId, setExpandedHeadlineId] = useState(null);
         const headlineRefs = useRef({});
@@ -247,7 +259,19 @@ https://cdn.jsdelivr.net/npm/jameel-noori@1.1.2/jameel-noori.min.css
 sideline: { show: true, width: 30, gap: 60, height: null, autoHeight: true, color: "#ff0000", opacity: 1 },
 			 sidelineOffset: 0,
             isCollapsed: false,
-			width: 800,
+			width: 900,
+			// Add this inside your default headline object and addHeadline function
+border: {
+  enabled: false,
+  color: "#ffffff",
+  width: 2,
+  radius: 0,
+  style: "solid", // New default property
+  top: true,
+  right: true,
+  bottom: true,
+  left: true
+},
           };
           setHeadlines([...headlines, newHeadline]);
         }
@@ -957,7 +981,70 @@ function duplicateHeadline(id) {
                             </div>}
                           </div>
 						  
-						  
+						  {/* Headline Border Controls */}
+<div className="mt-4 border-t pt-2">
+  <label className="flex items-center font-semibold text-sm">
+    <input 
+      type="checkbox" 
+      checked={headline.border?.enabled} 
+      onChange={e => updateHeadline(headline.id, { border: { ...headline.border, enabled: e.target.checked } })} 
+    />
+    <span className="ml-2">Headline Border</span>
+  </label>
+  
+  {headline.border?.enabled && (
+    <div className="mt-2 space-y-2 pl-2">
+      <div className="flex items-center gap-2">
+        <label className="text-xs">Color</label>
+        <input type="color" value={headline.border.color} onChange={e => updateHeadline(headline.id, { border: { ...headline.border, color: e.target.value } })} className="w-8 h-6" />
+        <label className="text-xs ml-2">Width</label>
+        <input type="number" value={headline.border.width} onChange={e => updateHeadline(headline.id, { border: { ...headline.border, width: parseInt(e.target.value) } })} className="w-12 border rounded px-1" />
+      </div>
+{/* Border Style Dropdown */}
+<div className="flex items-center gap-2 mt-2">
+  <label className="text-xs">Style:</label>
+  <select 
+    value={headline.border.style || "solid"} 
+    onChange={e => updateHeadline(headline.id, { border: { ...headline.border, style: e.target.value } })}
+    className="text-xs border rounded p-1 flex-1"
+  >
+    <option value="solid">Solid</option>
+    <option value="dashed">Dashed</option>
+    <option value="dotted">Dotted</option>
+    <option value="double">Double</option>
+    <option value="groove">Groove</option>
+    <option value="ridge">Ridge</option>
+  </select>
+</div>
+      <div className="flex flex-wrap gap-2">
+        {['top', 'right', 'bottom', 'left'].map(side => (
+          <label key={side} className="flex items-center text-[10px] uppercase">
+            <input 
+              type="checkbox" 
+              checked={headline.border[side]} 
+              onChange={e => updateHeadline(headline.id, { border: { ...headline.border, [side]: e.target.checked } })} 
+            />
+            <span className="ml-1">{side}</span>
+          </label>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <label className="text-xs">Corners:</label>
+        <select 
+          value={headline.border.radius} 
+          onChange={e => updateHeadline(headline.id, { border: { ...headline.border, radius: parseInt(e.target.value) } })}
+          className="text-xs border rounded p-1"
+        >
+          <option value="0">Square</option>
+          <option value="10">Rounded Small</option>
+          <option value="25">Rounded Medium</option>
+          <option value="50">Pill</option>
+        </select>
+      </div>
+    </div>
+  )}
+</div>
 
                           {/* Sideline Controls */}
 						  
@@ -1545,12 +1632,22 @@ function duplicateHeadline(id) {
                     textAlign: headline.textAlign,
                     cursor: canDragHeadlines ? "move" : "default",
                     zIndex: 200,
+					boxSizing: "border-box",
                     fontFamily: headline.fontFamily.startsWith("Noto Sans Arabic")
                         ? "Noto Sans Arabic"
                         : headline.fontFamily,
                     fontWeight: headline.fontFamily === "Noto Sans Arabic Thin" ? 100 : "normal",
                     fontVariationSettings: headline.fontFamily === "Noto Sans Arabic Condensed" ? "'wdth' 62.5" : "normal",
                     unicodeBidi: "plaintext",
+borderStyle: headline.border?.enabled ? (headline.border.style || "solid") : "none",
+borderColor: headline.border?.color || "transparent",
+borderTopWidth: headline.border?.top ? `${headline.border.width}px` : 0,
+borderRightWidth: headline.border?.right ? `${headline.border.width}px` : 0,
+borderBottomWidth: headline.border?.bottom ? `${headline.border.width}px` : 0,
+borderLeftWidth: headline.border?.left ? `${headline.border.width}px` : 0,
+borderRadius: `${headline.border?.radius || 0}px`,
+padding: headline.border?.enabled ? "10px 20px" : "0", // Adds some breathing room inside the border
+
                 }}
             >
                 {headline.text}
